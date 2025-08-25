@@ -103,10 +103,10 @@ Encoding based on method of CryTeck CryEngine 3 — [Advances in Real-Time Rende
  The depth buffer does not write translucent objects, so you will most likely render shaders in the [PreDrawTranslucentRenderables](url=https://wiki.facepunch.com/gmod/GM:PreDrawTranslucentRenderables) hook.
 
 ### Special thanks to:
-Meetric — WorldPos reconstruction.
+[Meetric](https://github.com/meetric1) — WorldPos reconstruction.
 notunknowndude— the idea to improve the depth buffer.
 puwada — the tip about texture format compatibility and DirectX.
-LVutner  — creting Velocity Buffer encoding.
+[LVutner](https://github.com/LVutner?tab=repositories)  — creting Velocity Buffer encoding.
 
 ### Links:
 * [GShaders discord](https://discord.gg/tV6X2Cgjuk)
