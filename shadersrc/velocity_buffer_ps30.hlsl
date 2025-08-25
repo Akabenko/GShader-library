@@ -1,4 +1,3 @@
-// https://developer.nvidia.com/gpugems/gpugems3/part-iv-image-effects/chapter-27-motion-blur-post-processing-effect
 #include "common_velocity_encoding.h"
 
 sampler WPDepthBuffer           : register(s0);
@@ -37,4 +36,5 @@ float4 main( PS_INPUT i ) : COLOR
 }
 
 // https://developer.nvidia.com/gpugems/gpugems3/part-iv-image-effects/chapter-27-motion-blur-post-processing-effect
+
 
