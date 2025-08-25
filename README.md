@@ -112,5 +112,6 @@ LVutner  — creting Velocity Buffer encoding.
 * [GShaders discord](https://discord.gg/tV6X2Cgjuk)
 * [Beginner's shader guide](https://github.com/ficool2/sdk_screenspace_shaders)
 * [Shader creation basics](https://github.com/meetric1/gmod_shader_guide/tree/main)
+* [EGSM - here are some examples that might be useful](https://github.com/devonium/EGSM/wiki/example_shaders)
 
 
