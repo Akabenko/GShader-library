@@ -10,12 +10,12 @@
 ### The addon includes:
 * Reconstruction of WorldPos, WorldNormals and Tangents from `_rt_ResolvedFullFrameDepth`.
 * Normal smoothing (BETA).
-* Increasing the bit depth of the depth buffer [i]_rt_ResolvedFullFrameDepth[/i].
+* Increasing the bit depth of the depth buffer `_rt_ResolvedFullFrameDepth`.
 * View and projection matrices: View, Proj, ViewProj. For perspective and orthogonal projection.
 * Newly discovered texture formats that allow more flexible work with shaders.
 * Encoding Normals and Tangents into a single texture, packing WorldPos and Depth, which will fit within the 4-texture limit in [screenspace_general](https://developer.valvesoftware.com/wiki/Screenspace_General).
-* Choice of [normal reconstruction method](https://wickedengine.net/2019/09/improved-normal-reconstruction-from-depth/): Simple, 3 Tap, 4 Tap, Improved, [Accurate](https://atyuwen.github.io/posts/normal-reconstruction/).
-* Function [i]shaderlib.DrawScreenQuad()[/i] with Multiple Render Target support.
+* Choice of [normal reconstruction method](https://wickedengine.net/2019/09/improved-normal-reconstruction-from-depth/): Simple, [3 Tap, 4 Tap, Improved](https://gist.github.com/bgolus/a07ed65602c009d5e2f753826e8078a0), [Accurate](https://atyuwen.github.io/posts/normal-reconstruction/).
+* Function `shaderlib.DrawScreenQuad()` with Multiple Render Target support.
 * Function `shaderlib.DrawVertexScreenQuad()` with input data to vertex shader and MRT support. More info here: [Example 6](https://github.com/meetric1/gmod_shader_guide/blob/main/lua/autorun/client/shader_examples.lua).
 * [Velocity Buffer](https://developer.nvidia.com/gpugems/gpugems3/part-iv-image-effects/chapter-27-motion-blur-post-processing-effect).
 
