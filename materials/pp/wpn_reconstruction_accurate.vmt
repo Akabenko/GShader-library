@@ -1,16 +1,14 @@
 screenspace_general
 {
-	$pixshader 			"wn_tangetns_decode_ps30"
+	$pixshader 			"wpn_reconstruction_accurate_ps30"
 	$vertexshader "pp_vs30"
-
-	$baseTexture 			"_rt_NormalsTangents"
+	$baseTexture 			"_rt_resolvedfullframedepth"
 
 	"$no_fullbright" 			1
-
+	$VertexColor 			1
 	$ignorez        			1
 	$VERTEXTRANSFORM 		1
 	$LINEARREAD_BASETEXTURE 	1
-
 	$WRITEALPHA      			1
 	$copyalpha 			1
 	$vertexalpha 			1
@@ -21,4 +19,7 @@ screenspace_general
 		$no_draw 1
 	}
 }
+
+
+
 

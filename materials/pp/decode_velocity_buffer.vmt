@@ -1,0 +1,18 @@
+screenspace_general
+{
+	$pixshader 			"velocity_buffer_decode_ps30"
+	$vertexshader 		"pp_vs30"
+
+	$baseTexture 			"_rt_Velocity"
+
+	"$no_fullbright" 			1
+	$ignorez        			1
+	$linearwrite 1
+	$LINEARREAD_BASETEXTURE 1
+
+	"<dx90"
+	{
+		$no_draw 1
+	}
+}
+
