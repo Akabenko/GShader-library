@@ -65,6 +65,7 @@ float3 reconstructPosition(float2 uv)
     // usually you'd divide by znear but we setup the projection matrix in a way where z=0 is already normalized
     world_pos = world_pos * to_linear(z);
     // offset
-    world_pos += unfucked_cEyePos;
+    world_pos += cEyePos;
     return world_pos;
 }
+
