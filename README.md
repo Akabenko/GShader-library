@@ -1,16 +1,15 @@
 # GShader library
 — a shader library that serves as the foundation for creating [Deferred Renderer (shading & lighting)](https://developer.valvesoftware.com/wiki/Deferred_renderer) shaders, acting as a convenient tool for creating advanced post-processing effects.
 
-### Brief list of textures in the addon:
+### List of textures in the addon:
 *  `_rt_WPDepth`
 * `_rt_NormalsTangents`
 * `_rt_Velocity`
 * `_rt_ResolvedFullFrameDepth`
 
-
 ### The addon includes:
 * Reconstruction of WorldPos, WorldNormals and Tangents from `_rt_ResolvedFullFrameDepth`.
-* Normal smoothing.
+* Normal smoothing (BETA).
 * Increasing the bit depth of the depth buffer [i]_rt_ResolvedFullFrameDepth[/i].
 * View and projection matrices: View, Proj, ViewProj. For perspective and orthogonal projection.
 * Newly discovered texture formats that allow more flexible work with shaders.
@@ -18,6 +17,7 @@
 * Choice of [normal reconstruction method](https://wickedengine.net/2019/09/improved-normal-reconstruction-from-depth/): Simple, 3 Tap, 4 Tap, Improved, [Accurate](https://atyuwen.github.io/posts/normal-reconstruction/).
 * Function [i]shaderlib.DrawScreenQuad()[/i] with Multiple Render Target support.
 * Function `shaderlib.DrawVertexScreenQuad()` with input data to vertex shader and MRT support. More info here: [Example 6](https://github.com/meetric1/gmod_shader_guide/blob/main/lua/autorun/client/shader_examples.lua).
+* [Velocity Buffer](https://developer.nvidia.com/gpugems/gpugems3/part-iv-image-effects/chapter-27-motion-blur-post-processing-effect).
 
 ### Encoding Normals and Tangents
 Normals and Tangents are stored in the render target `_rt_NormalsTangents`, where:
@@ -93,6 +93,11 @@ float3x3 TBN = float3x3(tangents, binormals, worldNormal);
 WorldPos and Depth are stored in the render target `_rt_WPDepth`, where:
 * `.RGB` — `1/WorldPos`: This means that WorldPos is packed into values <1. To unpack, use `float3 worldPos = 1/tex2D(WPDepthBuffer,uv).xyz;` in the shader.
 * `.A` — Depth
+
+### Velocity Buffer
+Encoding based on method of CryTeck CryEngine 3 — [Advances in Real-Time Rendering cource](https://advances.realtimerendering.com/s2013/index.html). [Implementation by LVutner](https://github.com/Akabenko/GShader-library/blob/main/shadersrc/common_velocity_encoding.h).
+* `.R` — X velocity.
+* `.A` — Y velocity.
 
 ### NOTE:
  The depth buffer does not write translucent objects, so you will most likely render shaders in the [PreDrawTranslucentRenderables](url=https://wiki.facepunch.com/gmod/GM:PreDrawTranslucentRenderables) hook.
