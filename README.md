@@ -39,7 +39,7 @@ float3 Decode(float2 f)
     return normalize(n);
 }
 ```
-Tangents are encoded using [Diamond Encoding](https://www.jeremyong.com/graphics/2023/01/09/tangent-spaces-and-diamond-encoding/)
+Tangents are encoded using [Diamond Encoding](https://www.jeremyong.com/graphics/2023/01/09/tangent-spaces-and-diamond-encoding/).
 Tangent decoding is done via the function:
 ```hlsl
 float2 decode_diamond(float p)
