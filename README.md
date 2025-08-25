@@ -98,6 +98,7 @@ WorldPos and Depth are stored in the render target `_rt_WPDepth`, where:
 Encoding based on method of CryTeck CryEngine 3 — [Advances in Real-Time Rendering cource](https://advances.realtimerendering.com/s2013/index.html). [Implementation by LVutner](https://github.com/Akabenko/GShader-library/blob/main/shadersrc/common_velocity_encoding.h).
 * `.R` — X velocity.
 * `.A` — Y velocity.
+[Velocity buffer decoding sample](https://github.com/Akabenko/GShader-library/blob/main/shadersrc/velocity_buffer_decode_ps30.hlsl)
 
 ### NOTE:
  The depth buffer does not write translucent objects, so you will most likely render shaders in the [PreDrawTranslucentRenderables](url=https://wiki.facepunch.com/gmod/GM:PreDrawTranslucentRenderables) hook.
