@@ -112,7 +112,7 @@ Encoding based on method of CryTeck CryEngine 3 — [Advances in Real-Time Rende
 * [LVutner](https://github.com/LVutner?tab=repositories)  — implementation Velocity Buffer encoding based on CryTeck method.
 
 ### Links:
-* [GShaders discord](https://discord.gg/tV6X2Cgjuk)
+* [GShaders discord](https://discord.gg/JVbhYEZAmQ)
 * [Beginner's shader guide](https://github.com/ficool2/sdk_screenspace_shaders)
 * [Shader creation basics](https://github.com/meetric1/gmod_shader_guide/tree/main)
 * [EGSM - here are some shader examples that might be useful](https://github.com/devonium/EGSM/wiki/example_shaders)
