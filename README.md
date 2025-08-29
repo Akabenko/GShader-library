@@ -40,6 +40,7 @@ float3 Decode(float2 f)
 }
 ```
 Tangents are encoded using [Diamond Encoding](https://www.jeremyong.com/graphics/2023/01/09/tangent-spaces-and-diamond-encoding/).
+Function of getting tangents based on [thexa4](https://github.com/thexa4/source-pbr/blob/b8c4b76882241ea8cb506e89a61a1f5448d24e71/mp/src/materialsystem/stdshaders/pbr_common_ps2_3_x.h#L63) function.
 Tangent decoding is done via the function:
 ```hlsl
 float2 decode_diamond(float p)
