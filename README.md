@@ -122,9 +122,6 @@ Encoding based on method of CryTeck CryEngine 3 — [Advances in Real-Time Rende
 
 [Velocity buffer decoding sample](https://github.com/Akabenko/GShader-library/blob/main/shadersrc/velocity_buffer_decode_ps30.hlsl)
 
-### NOTE:
- The depth buffer does not write translucent objects, so you will most likely render shaders in the [PreDrawTranslucentRenderables](url=https://wiki.facepunch.com/gmod/GM:PreDrawTranslucentRenderables) hook.
-
 ### Special thanks to:
 * [Meetric](https://github.com/meetric1) — WorldPos reconstruction.
 * notunknowndude — the idea to improve the depth buffer.
