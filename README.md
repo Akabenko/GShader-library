@@ -99,7 +99,7 @@ Normals and Tangents are stored in the render target `_rt_NormalsTangents`, wher
 * `.RGB` — Reconstructed bumps from FrameBuffer
 * `.A`  — Inverted Fog
 
-### Velocity Buffer
+### Velocity Buffer (removed, but u can use it for custom shaders)
 Encoding based on method of CryTeck CryEngine 3 — [Advances in Real-Time Rendering cource](https://advances.realtimerendering.com/s2013/index.html). [Implementation by LVutner](https://github.com/Akabenko/GShader-library/blob/main/shadersrc/common_velocity_encoding.h).
 * `.R` — X velocity.
 * `.A` — Y velocity.
