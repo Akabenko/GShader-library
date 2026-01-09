@@ -17,6 +17,7 @@
 * Choice of [normal reconstruction method](https://wickedengine.net/2019/09/improved-normal-reconstruction-from-depth/): Simple, [3 Tap, 4 Tap, Improved](https://gist.github.com/bgolus/a07ed65602c009d5e2f753826e8078a0), [Accurate](https://atyuwen.github.io/posts/normal-reconstruction/).
 * Function `shaderlib.DrawScreenQuad()` with Multiple Render Target support.
 * Function `shaderlib.DrawVertexScreenQuad()` with input data to vertex shader and MRT support. More info here: [Example 6](https://github.com/meetric1/gmod_shader_guide/blob/main/lua/autorun/client/shader_examples.lua).
+
 ~~* [Velocity Buffer](https://developer.nvidia.com/gpugems/gpugems3/part-iv-image-effects/chapter-27-motion-blur-post-processing-effect).~~
 
 ### Encoding Normals and Tangents
