@@ -3,242 +3,248 @@
     https://gist.github.com/Zaurzo/c5c2811f77fc6a52e6fa71d34b7229be
 -------------------------------------]]
 
-local dlight_tables, dlight_to_index, index_to_dlight do
-    local function weak_table(mode)
-        return setmetatable({}, { __mode = mode })
-    end
+local DLight = FindMetaTable('dlight_t')
+local lightCache = setmetatable({}, { __mode = 'v' })
 
-    dlight_tables = weak_table('k')
-    dlight_to_index = weak_table('k')
-    index_to_dlight = weak_table('v')
+local pairs = pairs
+local setmetatable = setmetatable
+local math_floor = math.floor
+local table_insert = table.insert
+local debug_setmetatable = debug.setmetatable
+local debug_getmetatable = debug.getmetatable
+
+local function reset_member_values(tbl)
+    tbl.brightness = 0
+    tbl.decay = 0
+    tbl.dietime = 0
+    tbl.innerangle = 0
+    tbl.outerangle = 0
+    tbl.minlight = 0
+    tbl.size = 0
+    tbl.style = 0
+    tbl.b = 0
+    tbl.g = 0
+    tbl.r = 0
+    tbl.noworld = false
+    tbl.nomodel = false
+    tbl.pos = nil
+    tbl.dir = nil
 end
 
-local _DynamicLight = DynamicLight
-local Vector = Vector
+local lightTableMeta = { __index = DLight }
+local function create_light_metatable(index, isELight)
+    local lightTable = { key = index }
 
-function DynamicLight(index, elight, ...)
-    local dlight = _DynamicLight(index, elight, ...)
+    lightTable._Table = lightTable
+    lightTable._IsELight = isELight or false
 
-    if dlight then
-        local current = index_to_dlight[index]
+    -- Table fallbacks to DLight metatable
+    setmetatable(lightTable, lightTableMeta)
 
-        if current then
-            local current_table = dlight_tables[current]
-            current_table._elight = elight or false
+    local lightMeta = {}
 
-            dlight_tables[dlight] = current_table
-            dlight_tables[current] = nil
-        else
-            local tbl = {
-                _elight = elight or false
-            }
+    lightMeta.__index = lightTable
+    lightMeta.__metatable = DLight
+    lightMeta.__newindex = DLight.__newindex
+    lightMeta.__tostring = DLight.__tostring
 
-            -- Setup default fields
-            tbl.dir = Vector(0, 0, 0)
-            tbl.pos = Vector(0, 0, 0)
-            tbl.noworld = false
-            tbl.nomodel = false
-            tbl.r = 0
-            tbl.g = 0
-            tbl.b = 0
-            tbl.brightness = 0
-            tbl.decay = 0
-            tbl.size = 0
-            tbl.dietime = 0
-            tbl.innerangle = 0
-            tbl.outerangle = 0
-            tbl.minlight = 0
-            tbl.style = 0
-            tbl.key = 0 -- whatever this is
-
-            dlight_tables[dlight] = tbl
-        end
-
-        dlight_to_index[dlight] = index
-        index_to_dlight[index] = dlight
-    end
-
-    return dlight
+    return lightMeta
 end
 
-local DLIGHT = FindMetaTable('dlight_t')
+-- DynamicLight indexes can only be an integer
+-- We separate ELights from DLights within the cache by adding .1 to their index
+local function get_cache_index(index, isELight)
+    return isELight and (index + (index < 0 and -0.1 or 0.1)) or index
+end
 
-local function DLIGHT_GetTable(dlight)
-    local index = dlight_to_index[dlight]
-    if not index then return end
+local C_DynamicLight = DynamicLight
+function DynamicLight(index, isELight)
+    local light = C_DynamicLight(index, isELight)
+    if not light then return end
 
-    dlight = index_to_dlight[index]
-    if not dlight then return end
+    index = math_floor(index)
 
-    return dlight_tables[dlight]
+    local cacheIndex = get_cache_index(index, isELight)
+    local meta = lightCache[cacheIndex] and debug_getmetatable(lightCache[cacheIndex])
+
+    meta = meta or create_light_metatable(index, isELight)
+
+    -- We have to reset the table's values every time to
+    -- preserve 1:1 behavior
+    reset_member_values(meta.__index)
+    debug_setmetatable(light, meta)
+
+    lightCache[cacheIndex] = light
+
+    return light
+end
+
+--[[---------------------------------
+    Meta Methods
+-----------------------------------]]
+
+function DLight:__tostring()
+    return 'dlight_t [' .. self.key .. ']'
+end
+
+local C__newindex = DLight.__newindex
+local string_lower = string.lower
+
+local validMembers = {
+    brightness = true,
+    decay = true,
+    dietime = true,
+    dir = true,
+    innerangle = true,
+    outerangle = true,
+    key = true,
+    minlight = true,
+    noworld = true,
+    nomodel = true,
+    pos = true,
+    size = true,
+    style = true,
+    b = true,
+    g = true,
+    r = true,
+}
+
+function DLight:__newindex(key, value)
+    if validMembers[key] then -- Fast path
+        self._Table[key] = value
+        return C__newindex(self, key, value)
+    end
+
+    key = string_lower(key) -- Member names are case-insensitive
+    
+    if validMembers[key] then
+        self._Table[key] = value
+    end
+
+    return C__newindex(self, key, value)
 end
 
 --[[----------------------------------
-    dlight_t Extensions
+    Methods
 -------------------------------------]]
 
-AccessorFunc(DLIGHT, 'brightness', 'Brightness', FORCE_NUMBER)
-AccessorFunc(DLIGHT, 'decay', 'Decay', FORCE_NUMBER)
-AccessorFunc(DLIGHT, 'dietime', 'DieTime', FORCE_NUMBER)
-AccessorFunc(DLIGHT, 'dir', 'Direction', FORCE_NUMBER)
-AccessorFunc(DLIGHT, 'innerangle', 'InnerAngle', FORCE_NUMBER)
-AccessorFunc(DLIGHT, 'OuterAngle', 'OuterAngle', FORCE_NUMBER)
-AccessorFunc(DLIGHT, 'minlight', 'MinLight', FORCE_NUMBER)
-AccessorFunc(DLIGHT, 'size', 'Size', FORCE_NUMBER)
-AccessorFunc(DLIGHT, 'style', 'style', FORCE_NUMBER)
-AccessorFunc(DLIGHT, 'pos', 'Pos', FORCE_VECTOR)
+AccessorFunc(DLight, 'brightness', 'Brightness', FORCE_NUMBER)
+AccessorFunc(DLight, 'decay', 'Decay', FORCE_NUMBER)
+AccessorFunc(DLight, 'dietime', 'DieTime', FORCE_NUMBER)
+AccessorFunc(DLight, 'innerangle', 'InnerAngle', FORCE_NUMBER)
+AccessorFunc(DLight, 'OuterAngle', 'OuterAngle', FORCE_NUMBER)
+AccessorFunc(DLight, 'minlight', 'MinLight', FORCE_NUMBER)
+AccessorFunc(DLight, 'size', 'Size', FORCE_NUMBER)
+AccessorFunc(DLight, 'style', 'style', FORCE_NUMBER)
 
-function DLIGHT:GetTable()
-    return DLIGHT_GetTable(self)
+local Vector = Vector
+local function accessor_vector(fieldName, methodName)
+    DLight['Get' .. methodName] = function(self)
+        local tbl = self._Table
+        local vec = tbl[fieldName]
+
+        -- We create the fallback vector here instead of when the DynamicLight is created
+        -- for better performance
+        if not vec then
+            vec = Vector(0, 0, 0)
+            tbl[fieldName] = vec
+        end
+
+        return vec
+    end
+
+    DLight['Set' .. methodName] = function(self, vec)
+        self[fieldName] = vec
+    end
 end
 
-function DLIGHT:GetIndex()
-    return dlight_to_index[self]
+accessor_vector('pos', 'Pos')
+accessor_vector('dir', 'Direction')
+
+function DLight:GetIndex()
+    return self.key
 end
 
-function DLIGHT:CanLightModels()
-    return not DLIGHT_GetTable(self).nomodel
+function DLight:IsELight()
+    return self._IsELight
 end
 
-function DLIGHT:CanLightWorld()
-    return not DLIGHT_GetTable(self).noworld
-end
-
-function DLIGHT:IsELight()
-    return DLIGHT_GetTable(self)._elight and true
-end
-
--- Returns the entity with same index as the dlight
-local ents_GetByIndex = ents.GetByIndex
-function DLIGHT:GetEntity()
-    local index = dlight_to_index[self]
-    if not index then return NULL end
-
-    return ents_GetByIndex(index)
-end
-
+local Entity = Entity
 local Color = Color
-function DLIGHT:GetColor()
-    local tbl = DLIGHT_GetTable(self)
-    if not tbl then return end
 
+function DLight:GetLightModels()
+    return not self.nomodel
+end
+
+function DLight:GetLightWorld()
+    return not self.noworld and not self._IsELight
+end
+
+--
+-- Returns the entity of the same index as this DLight
+--
+function DLight:GetEntity()
+    return Entity(self.key)
+end
+
+function DLight:GetColor()
+    local tbl = self._Table
     return Color(tbl.r, tbl.g, tbl.b, 255)
 end
 
-function DLIGHT:GetColorUnpacked()
-    local tbl = DLIGHT_GetTable(self)
-    if not tbl then return end
-
+function DLight:GetColorUnpacked()
+    local tbl = self._Table
     return tbl.r, tbl.g, tbl.b
 end
 
-function DLIGHT:SetColor(color)
+function DLight:SetColor(color)
     self.r = color.r
     self.g = color.g
     self.b = color.b
 end
 
-function DLIGHT:SetColorUnpacked(r, g, b)
+function DLight:SetColorUnpacked(r, g, b)
     self.r = r
     self.g = g
     self.b = b
 end
 
-function DLIGHT:SetLightModels(value)
-    self.nomodel = not value
+function DLight:SetLightModels(lightModels)
+    self.nomodel = not lightModels
 end
 
-function DLIGHT:SetLightWorld(value)
-    self.noworld = not value
+function DLight:SetLightWorld(lightWorld)
+    self.noworld = not lightWorld
 end
 
---[[----------------------------------
-    dlight_t Overrides
--------------------------------------]]
+--[[---------------------------------
+    Global Getters
+-----------------------------------]]
 
-local original_newindex = DLIGHT.__newindex
-local string_lower = string.lower
-local base_fields = {
-    dir = true,
-    pos = true,
-    noworld = true,
-    nomodel = true,
-    r = true,
-    g = true,
-    b = true,
-    brightness = true,
-    decay = true,
-    size = true,
-    dietime = true,
-    innerangle = true,
-    outerangle = true,
-    minlight = true,
-    style = true,
-    key = true
-}
+local next = next
 
-DLIGHT.__newindex = function(self, k, v)
-    local tbl = DLIGHT_GetTable(self)
-
-    if tbl ~= nil then
-        local k_lower = string_lower(k)
-
-        if base_fields[k_lower] then
-            tbl[k_lower] = v
-        else
-            tbl[k] = v
-        end
-    end
-
-    return original_newindex(self, k, v)
-end
-
-local original_index = DLIGHT.__index
-
-local is_index_table = istable(original_index)
-local is_index_function = isfunction(original_index)
-
-DLIGHT.__index = function(self, k)
-    local tbl = DLIGHT_GetTable(self)
-
-    if tbl ~= nil then
-        local value = tbl[k]
-
-        if value ~= nil then
-            return value
-        end
-    end
-
-    if is_index_table then
-        return original_index[k]
-    elseif is_index_function then -- just in case any addon changed it to a function too
-        return original_index(self, k)
-    end
-end
-
---[[----------------------------------
-    Global Functions
--------------------------------------]]
-
-local getmetatable = getmetatable
-local pairs = pairs
-
-function isdlight(value)
-    return getmetatable(value) == DLIGHT
-end
-
-function render.GetDynamicLights()
+function render.GetDynamicLights(elight)
     local list = {}
     local n = 0
 
-    for _, dlight in pairs(index_to_dlight) do
-        n = n + 1
-        list[n] = dlight
+    for _, light in next, lightCache do
+        local addToList = elight == nil or
+        (elight == true and light:IsELight()) or
+        (elight == false and not light:IsELight())
+       
+        if addToList then
+            n = n + 1
+            list[n] = light
+        end
     end
 
     return list
 end
 
-function render.GetDynamicLightByIndex(index)
-    return index_to_dlight[index]
+function render.GetDynamicLight(index, isELight)
+    return lightCache[get_cache_index(index, isELight)]
+end
+
+function render.DynamicLightPairs()
+    return next, lightCache
 end
