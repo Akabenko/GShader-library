@@ -99,6 +99,22 @@ Normals and Tangents are stored in the render target `_rt_NormalsTangents`, wher
 * `.RGB` — Reconstructed bumps from FrameBuffer
 * `.A`  — Inverted Fog
 
+### Example of using _rt_BumpFog
+```hlsl
+half4 bump = tex2Dlod(BumpBuffer,float4(uv,0,0));
+float4 normals_tangents = tex2Dlod(NormalBuffer, float4(uv,0,0));
+float flipSign = normals_tangents.a;
+float3 N = Decode( normals_tangents.xy );
+float3 T = decode_tangent(N, normals_tangents.z);
+float3 B = normalize(cross(N,T)) * flipSign;
+float3x3 TBN = half3x3(T,B,N);
+half3 textureNormal = (bump.xyz * 2 - 1) * flipSign;
+N = normalize( mul( textureNormal, TBN ));
+```
+Result:
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/90600fd3-7e84-4dc0-aeb7-463678b7aa96" />
+
+
 ### Velocity Buffer (removed, but u can use it for custom shaders)
 Encoding based on method of CryTeck CryEngine 3 — [Advances in Real-Time Rendering cource](https://advances.realtimerendering.com/s2013/index.html). [Implementation by LVutner](https://github.com/Akabenko/GShader-library/blob/main/shadersrc/common_velocity_encoding.h).
 * `.R` — X velocity.
