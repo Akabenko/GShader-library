@@ -46,6 +46,7 @@ float4 main(PS_INPUT i) : COLOR {
     float3 sum = 0.;
     float wsum = 0.;
 
+	[loop]
     for (int x = -filterSize; x <= filterSize; ++x) {
         float2 coords = x;
         float3 sampl = Decode(tex2Dlod(NormalsBuffer, float4(uv + coords * TexBaseSize, 0,0) ).xy);
