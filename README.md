@@ -4,7 +4,7 @@
 ### List of textures in the addon:
 *  `_rt_WPDepth`
 * `_rt_NormalsTangents`
-* `_rt_Velocity`
+* `_rt_BumpFog`
 * `_rt_ResolvedFullFrameDepth`
 
 ### The addon includes:
@@ -17,7 +17,7 @@
 * Choice of [normal reconstruction method](https://wickedengine.net/2019/09/improved-normal-reconstruction-from-depth/): Simple, [3 Tap, 4 Tap, Improved](https://gist.github.com/bgolus/a07ed65602c009d5e2f753826e8078a0), [Accurate](https://atyuwen.github.io/posts/normal-reconstruction/).
 * Function `shaderlib.DrawScreenQuad()` with Multiple Render Target support.
 * Function `shaderlib.DrawVertexScreenQuad()` with input data to vertex shader and MRT support. More info here: [Example 6](https://github.com/meetric1/gmod_shader_guide/blob/main/lua/autorun/client/shader_examples.lua).
-* [Velocity Buffer](https://developer.nvidia.com/gpugems/gpugems3/part-iv-image-effects/chapter-27-motion-blur-post-processing-effect).
+~~* [Velocity Buffer](https://developer.nvidia.com/gpugems/gpugems3/part-iv-image-effects/chapter-27-motion-blur-post-processing-effect).~~
 
 ### Encoding Normals and Tangents
 Normals and Tangents are stored in the render target `_rt_NormalsTangents`, where:
@@ -94,6 +94,11 @@ float3x3 TBN = float3x3(tangents, binormals, worldNormal);
 WorldPos and Depth are stored in the render target `_rt_WPDepth`, where:
 * `.RGB` — `1/WorldPos`: This means that WorldPos is packed into values <1. To unpack, use `float3 worldPos = 1/tex2D(WPDepthBuffer,uv).xyz;` in the shader.
 * `.A` — Depth
+
+### _rt_BumpFog
+Normals and Tangents are stored in the render target `_rt_NormalsTangents`, where:
+* `.RGB` — Reconstructed bumps from FrameBuffer
+* `.A`  — Inverted Fog
 
 ### Velocity Buffer
 Encoding based on method of CryTeck CryEngine 3 — [Advances in Real-Time Rendering cource](https://advances.realtimerendering.com/s2013/index.html). [Implementation by LVutner](https://github.com/Akabenko/GShader-library/blob/main/shadersrc/common_velocity_encoding.h).
