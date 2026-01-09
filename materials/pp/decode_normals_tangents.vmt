@@ -9,12 +9,11 @@ screenspace_general
 
 	$ignorez        			1
 	$VERTEXTRANSFORM 		1
-	$LINEARREAD_BASETEXTURE 	1
-
+	//$LINEARREAD_BASETEXTURE 	1
 	$WRITEALPHA      			1
 	$copyalpha 			1
 	$vertexalpha 			1
-	$linearwrite 			1
+	//$linearwrite 			1
 
 	"<dx90"
 	{

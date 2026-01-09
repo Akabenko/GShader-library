@@ -1,0 +1,13 @@
+screenspace_general
+{
+	$pixshader 		"depth_combine_ps30"
+	$vertexshader 	"pp_vs30"
+
+	$basetexture 		"_rt_ResolvedFullFrameDepth"
+	$texture1 		"_rt_ResolvedFullFrameDepthSky"
+
+	"<dx90"
+	{
+		$no_draw 1
+	}
+}

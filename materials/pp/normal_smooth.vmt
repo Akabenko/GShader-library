@@ -1,0 +1,28 @@
+screenspace_general
+{
+	$pixshader 		"normals_smooth_ps30"	
+	$vertexshader 	"pp_vs30"
+
+	$baseTexture 		"_rt_NormalsTangents"
+	$texture1 		"_rt_WPDepth"
+	$texture2 		"pp/LDR_LLL1_0"
+
+	$linearread_texture2 1
+
+	"$no_fullbright" 		1
+	$ignorez        		1
+	$VERTEXTRANSFORM 		1
+	$WRITEALPHA      		1
+	$copyalpha 			1
+	$vertexalpha 			1
+	
+	$c0_x 1
+	$c1_x 4
+
+	"<dx90"
+	{
+		$no_draw 1
+	}
+}
+
+

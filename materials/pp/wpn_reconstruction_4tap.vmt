@@ -1,25 +1,26 @@
 screenspace_general
 {
 	$pixshader 			"wpn_reconstruction_4tap_ps30"
-	$vertexshader "pp_vs30"
-	$baseTexture 			"_rt_resolvedfullframedepth"
+	$vertexshader 		"reconstruction_vs30"
 
-	"$no_fullbright" 			1
-	$VertexColor 			1
-	$ignorez        			1
+	$baseTexture 			"_rt_resolvedfullframedepth"
+	$texture1 			"_rt_FullFrameFB"
+	$texture2			"_rt_WPDepth"
+
+	"$no_fullbright" 		1
+	$ignorez        		1
 	$VERTEXTRANSFORM 		1
 	$LINEARREAD_BASETEXTURE 	1
-	$WRITEALPHA      			1
+	$LINEARREAD_TEXTURE1 	1
+	$WRITEALPHA      		1
 	$copyalpha 			1
 	$vertexalpha 			1
-	$linearwrite 			1
+
+	$c1_x 1
 
 	"<dx90"
 	{
 		$no_draw 1
 	}
-
-	$c1_x 1
 }
-
 
