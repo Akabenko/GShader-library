@@ -4,8 +4,6 @@
 #include "common_diamond_encoding.h"
 #include "common_octahedron_encoding.h"
 
-#define SIMPLE_
-
 sampler BASETEXTURE         : register(s0);
 sampler FrameBuffer         : register(s1);
 sampler WPDepthBuffer       : register(s2);
@@ -362,6 +360,7 @@ https://wickedengine.net/2019/09/improved-normal-reconstruction-from-depth/
 https://gist.github.com/bgolus/a07ed65602c009d5e2f753826e8078a0
 https://atyuwen.github.io/posts/normal-reconstruction/
 */
+
 
 
 
