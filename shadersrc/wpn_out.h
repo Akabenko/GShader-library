@@ -62,6 +62,8 @@ void compute_tangent_cheap(float3 N, out float3 T) {
     T = -T * rsqrt(dot(T, T));
 }
 
+// Compute the matrix used to transform tangent space normals to world space
+// This expects DirectX normal maps in Mikk Tangent Space http://www.mikktspace.com
 void compute_tangent_frame(float3 N, float3 P, out float3 T, out float sign_det)
 {
     float3 dp1 = ddx(P);
@@ -360,5 +362,6 @@ https://wickedengine.net/2019/09/improved-normal-reconstruction-from-depth/
 https://gist.github.com/bgolus/a07ed65602c009d5e2f753826e8078a0
 https://atyuwen.github.io/posts/normal-reconstruction/
 */
+
 
 
