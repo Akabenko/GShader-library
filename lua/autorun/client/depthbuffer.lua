@@ -74,10 +74,10 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
     )
 
     hook.Add("PreRender", libname, function()
-        --[[render.PushRenderTarget(shaderlib.rt_depth_skybox)
+        render.PushRenderTarget(shaderlib.rt_depth_skybox)
             render.Clear( 255, 0, 0, 0 )
         render.PopRenderTarget()
-        hook.Remove("PreRender", libname)]]
+        hook.Remove("PreRender", libname)
     end)
 
     local depthwrite_mat = CreateMaterial("depthwritesky", "DepthWrite", {
@@ -463,5 +463,6 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
 end
 --SkyBox3DUpradeDepth()
 hook.Add("InitPostShaderlib", "SkyBoxDepth3D", SkyBox3DUpradeDepth)
+
 
 
