@@ -60,6 +60,8 @@ end
 
 hook.Add("InitPostShaderlib", libname, UpgradeDepthBuffer)
 
+
+
 local function SkyBox3DUpradeDepth() -- 3D skybox support
     local linux = render.GetDXLevel() == 92 or system.IsLinux() or system.IsOSX() or system.IsProton()
 
@@ -72,10 +74,10 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
     )
 
     hook.Add("PreRender", libname, function()
-        render.PushRenderTarget(shaderlib.rt_depth_skybox)
+        --[[render.PushRenderTarget(shaderlib.rt_depth_skybox)
             render.Clear( 255, 0, 0, 0 )
         render.PopRenderTarget()
-        hook.Remove("PreRender", libname)
+        hook.Remove("PreRender", libname)]]
     end)
 
     local depthwrite_mat = CreateMaterial("depthwritesky", "DepthWrite", {
@@ -390,8 +392,6 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
     local static_prop_combined, vertexes_tbl_alpha = SortVertexByMat(skybox_static_props)
     local static_prop_combined_alpha, combined_depth_mats = CreateCombinedMesh(vertexes_tbl_alpha)
 
-    
-
     hook.Add("PreDrawReconstruction", libname, function()
         if !GetConVar("r_shaderlib_3dskybox"):GetBool() then return end
         if !GetConVar("r_3dsky"):GetBool() then return end
@@ -400,19 +400,19 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
         local viewSetup = render.GetViewSetup()
 
         render.PushRenderTarget(shaderlib.rt_depth_skybox)
-            -- render.Clear( 255, 0, 0, 0 )
-            -- render.ClearDepth()
+            render.Clear( 255, 0, 0, 0 )
+            render.ClearDepth()
             render.CullMode(MATERIAL_CULLMODE_NONE or MATERIAL_CULLMODE_CW)
-    
+
             viewSetup.origin = sky_camera_pos + (viewSetup.origin / skybox_scale);
             viewSetup.zfar = viewSetup.zfar*skybox_scale;
 
             -- первым можно рендерить коробку
-            cam.Start3D()
+            --[[cam.Start3D()
                 render.SetMaterial(vector_origin, EyeAngles())
                 local min,max = game.GetWorld():GetModelBounds()
                 render.DrawBox( vector_origin, angle_zero, max, min, color_white )
-            cam.End3D()
+            cam.End3D()]]
 
             cam.Start(viewSetup)
                 for i = 1,#opaque_meshes do
@@ -452,7 +452,7 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
         end
     end)
 
-     cvars.AddChangeCallback("r_shaderlib_3dskybox", function(convar_name, _, value_new)
+    cvars.AddChangeCallback("r_shaderlib_3dskybox", function(convar_name, _, value_new)
         local state = value_new == "1"
         if !state then
             render.PushRenderTarget(shaderlib.rt_depth_skybox)
@@ -461,7 +461,7 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
         end
     end)
 end
-
+--SkyBox3DUpradeDepth()
 hook.Add("InitPostShaderlib", "SkyBoxDepth3D", SkyBox3DUpradeDepth)
 
 
