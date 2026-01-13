@@ -462,7 +462,12 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
     end)
 end
 --SkyBox3DUpradeDepth()
-hook.Add("InitPostShaderlib", "SkyBoxDepth3D", SkyBox3DUpradeDepth)
+hook.Add("InitPostShaderlib", "SkyBoxDepth3D", function()
+    timer.Simple(0, function()
+        SkyBox3DUpradeDepth()
+    end)
+end)
+
 
 
 
