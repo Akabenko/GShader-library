@@ -135,7 +135,7 @@ Encoding based on method of CryTeck CryEngine 3 — [Advances in Real-Time Rende
 * [Beginner's shader guide](https://github.com/ficool2/sdk_screenspace_shaders)
 * [Shader creation basics](https://github.com/meetric1/gmod_shader_guide/tree/main)
 * [EGSM - here are some shader examples that might be useful](https://github.com/devonium/EGSM/wiki/example_shaders)
-* [EGSM - actial fork for x86-64]([https://github.com/devonium/EGSM/wiki/example_shaders](https://github.com/Akabenko/EGSM))
+* [EGSM - actual fork for x86-64](https://github.com/devonium/EGSM/wiki/example_shaders](https://github.com/Akabenko/EGSM)
 
 
 
