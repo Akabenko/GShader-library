@@ -499,8 +499,5 @@ hook.Add("InitPostShaderlib", "SkyBoxDepth3D", function()
     end)
 end)
 
-hook.Add("PostDrawHUD", "test", function()
-    render.DrawTextureToScreen("_rt_normalstangents")
-end)
 
 
