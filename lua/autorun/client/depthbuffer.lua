@@ -63,6 +63,12 @@ hook.Add("InitPostShaderlib", libname, UpgradeDepthBuffer)
 
 
 local function SkyBox3DUpradeDepth() -- 3D skybox support
+    local render = render
+    local file = file
+    local util = util
+    local Matrix = Matrix
+    local string = string
+
     local linux = render.GetDXLevel() == 92 or system.IsLinux() or system.IsOSX() or system.IsProton()
 
     shaderlib.rt_depth_skybox = GetRenderTargetEx( "_rt_ResolvedFullFrameDepthSky", ScrW(), ScrH(),
@@ -72,7 +78,7 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
         0,
         NikNaks and IMAGE_FORMAT_R32F or (linux and IMAGE_FORMAT_RGB888 or IMAGE_FORMAT_I8)
     )
-
+    
     hook.Add("PreRender", libname, function()
         render.PushRenderTarget(shaderlib.rt_depth_skybox)
             render.Clear( 255, 0, 0, 0 )
@@ -105,6 +111,13 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
     local has_skybox        = NikNaks.CurrentMap:HasSkyBox()
     if !has_skybox then return end
 
+    local function tableAdd(dest, source)
+        for i = 1, #source do
+            dest[#dest + 1] = source[i]
+        end
+        return dest
+    end
+
     local skybox_scale      = NikNaks.CurrentMap:GetSkyBoxScale()
     local sky_camera_pos    = NikNaks.CurrentMap:GetSkyBoxPos()
     local skybox_leafs      = NikNaks.CurrentMap:GetSkyboxLeafs()
@@ -129,7 +142,11 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
 
             local faces = {}
             local leaf_faces = leaf:GetFaces(true)
-            for k, face in pairs(leaf_faces) do
+            --for k, face in pairs(leaf_faces) do
+            for k = 1,#leaf_faces do
+                local face = leaf_faces[k]
+                if !face then continue end
+                --print(k, face, #leaf_faces)
                 if face:HasTexInfoFlag(0x08) then continue end
                 local tex = string.lower( face:GetTexData().nameStringTableID )
                 if blacklist_mat[tex] then continue end
@@ -165,7 +182,7 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
                 faces[#faces+1] = face
             end 
 
-            table.Add( skybox_faces, faces )
+            tableAdd( skybox_faces, faces )
         end
 
         skybox_static_props = NikNaks.CurrentMap:FindStaticInBox( skybox_mins, skybox_maxs )
@@ -176,11 +193,17 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
     local function CheckAlphatest(tex)
         local patch = "materials/"..tex..".vmt"
         local mat_file = file.Read( patch, "GAME" )
+
         local alphatest = false
         if mat_file then
             local key_values = util.KeyValuesToTable( mat_file )
-            alphatest = (key_values["$alphatest"] or 0) >= 1 or (key_values["$translucent"] or 0) >= 1 or (key_values["$additive"] or 0) >= 1
-        end
+
+            alphatest = (key_values["$alphatest"] or 0) >= 1 or
+                        (key_values["$translucent"] or 0) >= 1 or
+                        (key_values["$additive"] or 0) >= 1 or
+                        (key_values["$vertexalpha"] or 0) >= 1
+        end 
+
         return alphatest
     end
 
@@ -209,15 +232,15 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
             local last = i == #static_t
 
             for i2 = 1,#visualMeshes do
-                visualMeshes[i2].verticies = nil
+                --visualMeshes[i2].verticies = nil
 
                 local tex = visualMeshes[i2].material
-                visualMeshes[i2].material = nil
+                --visualMeshes[i2].material = nil
 
                 local alphatest = CheckAlphatest(tex)
 
                 local triangles = visualMeshes[i2].triangles
-                visualMeshes[i2] = nil
+                --visualMeshes[i2] = nil
                 local unique_vertexes = {}
 
                 if alphatest then
@@ -235,7 +258,7 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
                     if !mats_vertexes_alpha[tex][index] then mats_vertexes_alpha[tex][index] = {} end
                     if #triangles + #mats_vertexes_alpha[tex][index] > vertex_limit then index = index + 1 end
                     if !mats_vertexes_alpha[tex][index] then mats_vertexes_alpha[tex][index] = {} end
-                    table.Add(mats_vertexes_alpha[tex][index], unique_vertexes)
+                    tableAdd(mats_vertexes_alpha[tex][index], unique_vertexes)
                 else
                     for i3 = 1,#triangles do
                         local v = triangles[i3]
@@ -251,7 +274,7 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
                         temp_vertexes = {}
                     end
 
-                    table.Add(temp_vertexes, unique_vertexes)
+                    tableAdd(temp_vertexes, unique_vertexes)
                 end
             end
 
@@ -291,7 +314,7 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
 
                 if !mats_vertexes_alpha[tex][index] then mats_vertexes_alpha[tex][index] = {} end
 
-                table.Add(mats_vertexes_alpha[tex][index], triangles)
+                tableAdd(mats_vertexes_alpha[tex][index], triangles)
             else
                 if #triangles + #temp_vertexes > vertex_limit then
                     local _mesh = Mesh()
@@ -299,14 +322,18 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
                     opaque_meshes[#opaque_meshes + 1] = _mesh
                     temp_vertexes = {}
                 end
+
+                tableAdd(temp_vertexes, triangles)
             end
 
-            table.Add(temp_vertexes, triangles)
-
             if last then
-                local _mesh = Mesh()
-                _mesh:BuildFromTriangles(temp_vertexes)
-                opaque_meshes[#opaque_meshes + 1] = _mesh
+               -- if alphatest then
+
+                --else
+                    local _mesh = Mesh()
+                    _mesh:BuildFromTriangles(temp_vertexes)
+                    opaque_meshes[#opaque_meshes + 1] = _mesh
+                --end
             end
         end
 
@@ -339,7 +366,8 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
             ["$ALPHATEST"] = "1";
             ["$translate"] = key_values["$translate"] or "[0 0]";
             ["$treesway"] = key_values["$treesway"] or "0";
-            ["$alphatestreference"] = key_values["$alphatestreference"] or "0.5";
+            ["$alphatestreference"] = key_values["$alphatestreference"] or (key_values["$vertexalpha"] and "0.01" or "0.5");
+            ["$vertexalpha"] = key_values["$vertexalpha"] or "0";
             ["$treeswayheight"] = key_values["$treeswayheight"] or "1000";
             ["$treeswaystartheight"] = key_values["$treeswaystartheight"] or "0.2";
             ["$treeswayradius"] = key_values["$treeswayradius"] or "300";
@@ -370,10 +398,13 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
         local meshes_tbl = {}
 
         for tex,v in pairs(mats_vertexes) do
-            for index, vertexes in pairs(v) do
+            for index = 0,#v do
+                local vertexes = v[index]
+
+            --for index, vertexes in pairs(v) do
+                --print(index,vertexes)
                 local _mesh = Mesh()
                 _mesh:BuildFromTriangles(vertexes)
-                v[index] = nil
 
                 local i = #meshes_tbl + 1
                 combined_depth_mats[i] = CreateDepthMaterial(tex)
@@ -468,6 +499,8 @@ hook.Add("InitPostShaderlib", "SkyBoxDepth3D", function()
     end)
 end)
 
-
+hook.Add("PostDrawHUD", "test", function()
+    render.DrawTextureToScreen("_rt_normalstangents")
+end)
 
 
