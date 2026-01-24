@@ -114,7 +114,6 @@ local function InitShaderLib()
 
 	NOTE:
 	 + 	IMAGE_FORMAT works
-	(?) IMAGE_FORMAT potentially works - successfully created, but it is not yet known how it works in gmod
 	Rest cause an error: ShaderAPIDX8::CreateD3DTexture: Invalid color format!
 	(t) works only for .vtf textures
 
@@ -133,7 +132,7 @@ local function InitShaderLib()
 	work in the resource. Vtf Editor does not support saving in P8 format.
 	---------------------------------------------------------------------------*/
 
-	IMAGE_FORMAT_A8 					=	8 	-- + 
+	IMAGE_FORMAT_A8 					=	8 	-- + 8 bit alpha format.
 	IMAGE_FORMAT_BGR888_BLUESCREEEN 	=	9 	-- (t)
 	IMAGE_FORMAT_BGR888_BLUESCREEEN 	=	10 	-- (t)
 	IMAGE_FORMAT_DXT1 					=	13 	-- (t)
@@ -148,24 +147,33 @@ local function InitShaderLib()
 	IMAGE_FORMAT_UV88 					=	22 	-- (t) DuDv map
 	IMAGE_FORMAT_UVWQ8888 				=	23 	-- (t)
 	IMAGE_FORMAT_UVLX8888 				=	26 	-- (t)
-	IMAGE_FORMAT_R32F 					=	27	-- + Single-channel 32-bit floating point. Not works on dx92 (Linux)
+	IMAGE_FORMAT_R32F 					=	27	-- + Single-channel 32-bit floating point. Good choise for colored depth buffer.
 	IMAGE_FORMAT_RGB323232F 			=	28  -- NOTE: D3D9 does not have this format
 	IMAGE_FORMAT_RGBA32323232F 			=	29 	-- + 
 	
 	if BRANCH == "x86-64" then -- CS:GO ids
+		IMAGE_FORMAT_RG1616F 				= 	30
+		IMAGE_FORMAT_RG3232F 				= 	31 
 		/*---------------------------------------------------------------------------
-		This would be a great format for VSM shadow filtering, as well as for Dual
-		paraboloid point lights. But it doesn't work.
+		IMAGE_FORMAT_RG1616F and IMAGE_FORMAT_RG3232F would be a great format for
+		VSM shadow filtering, as well as for Dual paraboloid point lights. But it doesn't work. (idk why)
+		VSM layers:
 		.R - Depth
 		.G - Depth^2
 		---------------------------------------------------------------------------*/
-		
-		IMAGE_FORMAT_RG1616F 				= 	30
-		IMAGE_FORMAT_RG3232F 				= 	31 
 
 		IMAGE_FORMAT_RGBX8888 				= 	32 	-- (t)
 
-		IMAGE_FORMAT_NV_NULL 				= 	33
+		IMAGE_FORMAT_NV_NULL 				= 	33 -- + Dummy format which takes no video memory.
+		/*---------------------------------------------------------------------------
+			IMAGE_FORMAT_NV_NULL allow to write Hardware Depth with no writing of COLOR0 for saving video memory.
+			Used for ProjectTextures. But for now we can't write manual Hardware Shadowmaps. So we can't use this format now in Lua:
+			https://github.com/Facepunch/garrysmod-requests/issues/3067
+
+			It can't working with Multy Render Target: COLOR0 and COLOR1. COLOR1 will no writes if you try to store COLOR0 to NV_NULL. Use
+			So use IMAGE_FORMAT_I8 as dummy colored rt. But IMAGE_FORMAT_A1 can be better for this:
+			https://github.com/Facepunch/garrysmod-requests/issues/2965
+		---------------------------------------------------------------------------*/
 
 		-- Compressed normal map formats (.vtf textures)
 		IMAGE_FORMAT_ATI1N 					= 	34 	-- (t) Two-surface ATI1N format
@@ -177,11 +185,12 @@ local function InitShaderLib()
 
 		/*---------------------------------------------------------------------------
 		Depth-stencil texture formats for shadow depth mapping These formats write
-		SV_Depth output from pixel shader.
+		SV_Depth output from pixel shader. But default shaders writes SV_Depth (DEPTH0) automatic.
+		For example: DepthWrite, writez shaders.
 
-		STUDIO_SHADOWDEPTHTEXTURE
+		Maybe it useful to use STUDIO_SHADOWDEPTHTEXTURE on shadowmap writting.
 		ShadowDepthTextureFormat = render.GetDXLevel() == 92 and IMAGE_FORMAT_D16_SHADOW or IMAGE_FORMAT_D24X8_SHADOW
-		This formats needed for Hardware PCF: tex2Dproj
+		This formats needed for Hardware PCF, using tex2Dproj.
 		---------------------------------------------------------------------------*/
 		IMAGE_FORMAT_D16 					= 	39 	-- (+)
 		IMAGE_FORMAT_D15S1 					= 	40
@@ -228,11 +237,6 @@ local function InitShaderLib()
 		IMAGE_FORMAT_ATI_DST16 				= 	34
 		IMAGE_FORMAT_ATI_DST24 				= 	35
 
-		/*---------------------------------------------------------------------------
-		Dummy format which takes no video memory.
-		It seems to work. But when rendering a scene to NV_NULL, Multy Render Target
-		stops working inside this render. So use IMAGE_FORMAT_I8 for dummy rt.
-		---------------------------------------------------------------------------*/
 		IMAGE_FORMAT_NV_NULL 				= 	36  -- (+)
 
 		IMAGE_FORMAT_ATI1N 					= 	37  -- (t)
@@ -590,6 +594,7 @@ local function InitShaderLib()
 end
 
 hook.Add("Initialize", libName, InitShaderLib)
+
 
 
 
