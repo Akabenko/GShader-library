@@ -123,7 +123,7 @@ local function InitShaderLib()
 	+mat_dxlevel (?70)/80/81/90/95(92)
 	---------------------------------------------------------------------------*/
 
-	IMAGE_FORMAT_I8 					=	5 	-- + ; One of the cheapest texture formats.
+	IMAGE_FORMAT_I8 					=	5 	-- + ; One of the cheapest texture formats. Cheap as A8.
 	IMAGE_FORMAT_IA88 					=	6 	-- +
 	IMAGE_FORMAT_P8 					=	7
 	/*---------------------------------------------------------------------------
@@ -594,6 +594,7 @@ local function InitShaderLib()
 end
 
 hook.Add("Initialize", libName, InitShaderLib)
+
 
 
 
