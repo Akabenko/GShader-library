@@ -183,7 +183,7 @@ local function InitShaderLib()
 		ShadowDepthTextureFormat = render.GetDXLevel() == 92 and IMAGE_FORMAT_D16_SHADOW or IMAGE_FORMAT_D24X8_SHADOW
 		This formats needed for Hardware PCF: tex2Dproj
 		---------------------------------------------------------------------------*/
-		IMAGE_FORMAT_D16 					= 	39 	-- (?)
+		IMAGE_FORMAT_D16 					= 	39 	-- (+)
 		IMAGE_FORMAT_D15S1 					= 	40
 		IMAGE_FORMAT_D32 					= 	41
 		IMAGE_FORMAT_D24S8 					= 	42 	-- X-RAY S.T.A.L.K.E.R Depth image format
@@ -191,8 +191,8 @@ local function InitShaderLib()
 		IMAGE_FORMAT_D24X8 					= 	44
 		IMAGE_FORMAT_D24X4S4 				= 	45
 		IMAGE_FORMAT_D24FS8 				= 	46
-		IMAGE_FORMAT_D16_SHADOW 			= 	47 	-- (?)
-		IMAGE_FORMAT_D24X8_SHADOW 			= 	48 	-- (?) 24 bit depth + 8 bit stencil. In theory, a great choice for shadow maps.
+		IMAGE_FORMAT_D16_SHADOW 			= 	47 	-- + Hardware depth format, used by ProjectTextures
+		IMAGE_FORMAT_D24X8_SHADOW 			= 	48 	-- + 24 bit depth + 8 bit stencil. In theory, a great choice for shadow maps. But D32 will be better, but D32 not working. You can use it for ProjectTextures like upgrade
 
 		-- supporting these specific formats as non-tiled for procedural cpu access
 		IMAGE_FORMAT_LINEAR_BGRX888 		= 	49
@@ -216,13 +216,13 @@ local function InitShaderLib()
 		IMAGE_FORMAT_DXT1_RUNTIME 			= 	65
 		IMAGE_FORMAT_DXT5_RUNTIME 			= 	66
 		
-		IMAGE_FORMAT_INTZ 					= 	67 	-- (?) 24-bit depth, 8-bit stencil; Most likely, also write SV_Depth 
+		IMAGE_FORMAT_INTZ 					= 	67 	-- + 24-bit depth, 8-bit stencil. Allow to read Hardware Depth as Colored pixel texture. You can re-register shadowmap D16, using it and get visible image.
 		--   NVFMT_INTZ is supported on newer chips as of G8x (just read like ATI non-fetch4 mode) (NVIDIA GeForce 8800 Ultra,,0x10DE,0x0194)
 	else -- TF2 values
-		IMAGE_FORMAT_NV_DST16 				= 	30  -- (?)
-		IMAGE_FORMAT_NV_DST24 				= 	31  -- (?)
+		IMAGE_FORMAT_NV_DST16 				= 	30  -- (+)
+		IMAGE_FORMAT_NV_DST24 				= 	31  -- (+)
 
-		IMAGE_FORMAT_NV_INTZ 				= 	32  -- (?)
+		IMAGE_FORMAT_NV_INTZ 				= 	32  -- (+)
 		IMAGE_FORMAT_NV_RAWZ 				= 	33
 
 		IMAGE_FORMAT_ATI_DST16 				= 	34
@@ -233,7 +233,7 @@ local function InitShaderLib()
 		It seems to work. But when rendering a scene to NV_NULL, Multy Render Target
 		stops working inside this render. So use IMAGE_FORMAT_I8 for dummy rt.
 		---------------------------------------------------------------------------*/
-		IMAGE_FORMAT_NV_NULL 				= 	36  -- (?)
+		IMAGE_FORMAT_NV_NULL 				= 	36  -- (+)
 
 		IMAGE_FORMAT_ATI1N 					= 	37  -- (t)
 		IMAGE_FORMAT_ATI2N 					= 	38  -- (t)
@@ -590,5 +590,6 @@ local function InitShaderLib()
 end
 
 hook.Add("Initialize", libName, InitShaderLib)
+
 
 
