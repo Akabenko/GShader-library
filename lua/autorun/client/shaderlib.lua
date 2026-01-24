@@ -92,7 +92,7 @@ local function InitShaderLib()
 	TEXFILTER.CONVOLUTIONMONO 	= 8 			/* D3D9Ex only -- */
 	TEXFILTER.FORCE_DWORD 		= 0x7fffffff 	-- force 32-bit size enum
 
-	local linux = system.IsLinux()
+	--[[local linux = system.IsLinux()
 	local mac = system.IsOSX()
 
 	if !linux and !mac then
@@ -107,7 +107,7 @@ local function InitShaderLib()
 				LocalPlayer():ChatPrint( "[shaderlib]: d3d9ex is disabled on your settings. Run «mat_disable_d3d9ex 0» to get support for better image formats. Artefacts are possible!" )
 			end
 		end )
-	end
+	end]]
 
 	/*---------------------------------------------------------------------------
 	IMAGE FORMATS
@@ -590,4 +590,5 @@ local function InitShaderLib()
 end
 
 hook.Add("Initialize", libName, InitShaderLib)
+
 
