@@ -151,7 +151,7 @@ local function InitShaderLib()
 	IMAGE_FORMAT_R32F 					=	27	-- + Single-channel 32-bit floating point. Not works on dx92 (Linux)
 	IMAGE_FORMAT_RGB323232F 			=	28  -- NOTE: D3D9 does not have this format
 	IMAGE_FORMAT_RGBA32323232F 			=	29 	-- + 
-
+	
 	if BRANCH == "x86-64" then -- CS:GO ids
 		/*---------------------------------------------------------------------------
 		This would be a great format for VSM shadow filtering, as well as for Dual
@@ -462,28 +462,33 @@ local function InitShaderLib()
 	    return matWorldToShadow
 	end
 
+	local t00_10 = {	0,  			0,			-1,				0			}
+
 	function shaderlib.BuildPerspectiveWorldToFlashlightMatrix(viewSetup) -- ViewProj for Flashlight g_FlashlightWorldToTexture
 		local pos, ang = viewSetup.origin, viewSetup.angles
 		local mFlashlightView = shaderlib.BuildWorldToShadowMatrix(pos, ang)
 		--mFlashlightView = shaderlib.GetViewMatrix(pos,ang)
-
+		
 		local fov = viewSetup.fov
 		fov = math.cot( math.rad(fov * 0.5)  )
 		local f = viewSetup.zfar
 		local n = viewSetup.znear
 		local aspect = viewSetup.aspect or 1
+		local range = ( n - f )
 
 		local mProj = Matrix({
             {	fov*aspect,  	0,			-0.5,      		0,			},
             {	0,  			fov,		-0.5,      		0,			},
-            {	0, 				0,			f / ( n - f ),	n * f / ( n - f ),			},
-            {	0,  			0,			-1,				0			}
+            {	0, 				0,			f / range,	n * f / range,			},
+            t00_10
         })
 
     	mProj:Mul(mFlashlightView)
 
     	return mProj
 	end
+
+	local t0001 = {0,		0,		0, 		1}
 
 	function shaderlib.GetViewMatrix(pos, ang)
 		local D = -ang:Forward()
@@ -495,20 +500,22 @@ local function InitShaderLib()
 	        {R.x, 	R.y, 	R.z,	0},
 	        {U.x, 	U.y, 	U.z,	0},
 	        {D.x, 	D.y, 	D.z,	0},
-	        {0,		0,		0, 		1},
+	        t0001,
 	    })
 
 	    local mSecond = Matrix({
 	        {1, 	0, 		0, 		P.x},
 	        {0, 	1, 		0, 		P.y},
 	        {0, 	0, 		1, 		P.z},
-	        {0, 	0, 		0, 		1},
+	        t0001,
 	    })
 
 	    mFirst:Mul(mSecond)
 
 	    return mFirst
 	end
+
+	local t0011 = {	0, 	0,				1, 				1			}
 
 	function shaderlib.GetProjMatrix(viewSetup) --Perspective projection matrix
 		local fov = viewSetup.fov
@@ -518,8 +525,8 @@ local function InitShaderLib()
 		local mProj = Matrix({
             {	fov,  0,			0,      		0,			},
             {	0,  fov*aspect,		0,      		0,			},
-            {	0, 	0,				1, 				1			},
-            {	0,  0,				-1,     		0			}
+            t0011,
+            t00_10
         })
 
     	return mProj
@@ -537,12 +544,12 @@ local function InitShaderLib()
 
 	function shaderlib.GetProjOrthoMartix(left, right, bottom, top, znear, zfar)
 		local mProj = Matrix()
-
+		
 		mProj:SetUnpacked(
             2 / (right - left), 0, 					0, 					 (right + left) / (right - left),
             0, 					2 / (top - bottom), 0, 					 (top + bottom) / (top - bottom),
             0, 					0, 					-1 / (zfar - znear), -(zfar + znear) / (zfar - znear),
-            0, 					0, 					0, 					 1
+            0,		0,		0, 		1
         )
 
         mProj:InvertTR()
