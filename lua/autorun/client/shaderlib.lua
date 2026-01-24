@@ -21,7 +21,7 @@ local function InitShaderLib()
 	VENDORID_NVIDIA = 0x10DE
 	VENDORID_ATI 	= 0x1002
 	VENDORID_INTEL 	= 0x8086
-	--https:--github.com/Facepunch/garrysmod-requests/issues/2768
+	-- https:github.com/Facepunch/garrysmod-requests/issues/2768
 	local vendors_id = {
 		[VENDORID_NVIDIA] 	= "NVIDIA";
 		[VENDORID_ATI] 		= "AMD";
@@ -590,3 +590,4 @@ local function InitShaderLib()
 end
 
 hook.Add("Initialize", libName, InitShaderLib)
+
