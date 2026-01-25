@@ -76,7 +76,7 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
         MATERIAL_RT_DEPTH_NONE,
         bit.bor(4, 8, 256, 512, 32768, 65536),
         0,
-        NikNaks and IMAGE_FORMAT_R32F or (linux and IMAGE_FORMAT_RGB888 or IMAGE_FORMAT_I8)
+        NikNaks and IMAGE_FORMAT_R32F or (linux and IMAGE_FORMAT_RGB565 or IMAGE_FORMAT_I8)
     )
     
     hook.Add("PreRender", libname, function()
@@ -498,6 +498,7 @@ hook.Add("InitPostShaderlib", "SkyBoxDepth3D", function()
         SkyBox3DUpradeDepth()
     end)
 end)
+
 
 
 
