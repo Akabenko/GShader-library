@@ -1,6 +1,8 @@
 # GShader library
 — a shader library that serves as the foundation for creating [Deferred Renderer (shading & lighting)](https://developer.valvesoftware.com/wiki/Deferred_renderer) shaders, acting as a convenient tool for creating advanced post-processing effects.
 
+[Link to Workshop steam addon](https://steamcommunity.com/sharedfiles/filedetails/?id=3542644649)
+
 ### List of textures in the addon:
 *  `_rt_WPDepth`
 * `_rt_NormalsTangents`
