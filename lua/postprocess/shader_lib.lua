@@ -232,7 +232,7 @@ local function InitParams()
 	NM_IMG_FORMAT = wn_formats[NW_IMG]
 
 	local function EnableReconstruction()
-		if BRANCH != "dev" and BRANCH != "x86-64" then
+		if BRANCH != "dev" and BRANCH != "x86-64" and game.SinglePlayer() then
 			LocalPlayer():ChatPrint( "Warning! USE x86-64 or dev version of GMOD. HERE FIXES FOR DEPTH BUFFER OF GMOD FOR MW BASE AND OTHER ADDONS!!!!!!! MAIN WILL BE UPDATED SOON!!!!!!!!" )
 		end
 		
@@ -396,6 +396,7 @@ local function InitParams()
 end
 
 hook.Add("InitPostReconstruction", libName, InitParams)
+
 
 
 
