@@ -232,6 +232,10 @@ local function InitParams()
 	NM_IMG_FORMAT = wn_formats[NW_IMG]
 
 	local function EnableReconstruction()
+		if BRANCH != "dev" and BRANCH != "x86-64" then
+			LocalPlayer():ChatPrint( "Warning! USE x86-64 or dev version of GMOD. HERE FIXES FOR DEPTH BUFFER OF GMOD FOR MW BASE AND OTHER ADDONS!!!!!!! MAIN WILL BE UPDATED SOON!!!!!!!!" )
+		end
+		
 		local value = GetConVar("mat_viewportscale"):GetFloat()
 		if value < 1 then
 			LocalPlayer():ChatPrint( "Warning! Your mat_viewportscale is " .. value .. "! Set it to 1! Or shaders broke!" )
@@ -392,5 +396,6 @@ local function InitParams()
 end
 
 hook.Add("InitPostReconstruction", libName, InitParams)
+
 
 
