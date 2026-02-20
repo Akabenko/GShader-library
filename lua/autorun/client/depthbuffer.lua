@@ -1,3 +1,4 @@
+
 local libname = "shaderlib"
 
 local function UpgradeDepthBuffer()
@@ -76,7 +77,7 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
         MATERIAL_RT_DEPTH_NONE,
         bit.bor(4, 8, 256, 512, 32768, 65536),
         0,
-        NikNaks and IMAGE_FORMAT_R32F or (linux and IMAGE_FORMAT_RGB565 or IMAGE_FORMAT_I8)
+        NikNaks and IMAGE_FORMAT_R32F or (linux and IMAGE_FORMAT_RGB888 or IMAGE_FORMAT_I8)
     )
     
     hook.Add("PreRender", libname, function()
@@ -128,7 +129,7 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
         ["tools/toolsskybox"] = true,
         ["tools/toolsskybox2d"] = true,
     }
-
+    
     local skybox_mins, skybox_maxs = NikNaks.CurrentMap:GetSkyboxSize()
 
     local function Collect3DSkyboxInfo()
@@ -147,19 +148,20 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
                 local face = leaf_faces[k]
                 if !face then continue end
                 --print(k, face, #leaf_faces)
-                if face:HasTexInfoFlag(0x08) then continue end
+                --if face:HasTexInfoFlag(0x08) then continue end -- DEAR ESTRA
                 local tex = string.lower( face:GetTexData().nameStringTableID )
                 if blacklist_mat[tex] then continue end
+
                 if face:IsSkyBox() then continue end
                 if face:IsSkyBox3D() then continue end
                 if face:GetEntity().classname != "worldspawn" then continue end
-
                 local patch = "materials/"..tex..".vmt"
                 local mat_file = file.Read( patch, "GAME" )
                 
                 if mat_file then
                     local key_values = util.KeyValuesToTable( mat_file )
                     if (key_values["$translucent"] or 0) >= 1 then continue end
+                    if (key_values["$nofog"] or 0) >= 1 then continue end -- dear estra support
                 end
 
                 local index = face:GetIndex()
@@ -195,8 +197,9 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
         local mat_file = file.Read( patch, "GAME" )
 
         local alphatest = false
+        local key_values
         if mat_file then
-            local key_values = util.KeyValuesToTable( mat_file )
+            key_values = util.KeyValuesToTable( mat_file )
 
             alphatest = (key_values["$alphatest"] or 0) >= 1 or
                         (key_values["$translucent"] or 0) >= 1 or
@@ -204,7 +207,7 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
                         (key_values["$vertexalpha"] or 0) >= 1
         end 
 
-        return alphatest
+        return alphatest, key_values
     end
 
     local function SortVertexByMat(static_t)
@@ -222,11 +225,15 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
 
             local pos   = static_prop.Origin
             local ang   = static_prop.Angles
+            local scale = static_prop.UniformScale or 1
 
             local mModel = Matrix()
             mModel:SetTranslation(pos)
             if ang != angle_zero then
                 mModel:SetAngles(ang)
+            end
+            if scale != 1 then
+                mModel:SetScale(Vector(scale,scale,scale))
             end
 
             local last = i == #static_t
@@ -237,7 +244,9 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
                 local tex = visualMeshes[i2].material
                 --visualMeshes[i2].material = nil
 
-                local alphatest = CheckAlphatest(tex)
+                local alphatest, key_values = CheckAlphatest(tex)
+
+                if (key_values and key_values["$nofog"] or 0) >= 1 then continue end -- dear estra support
 
                 local triangles = visualMeshes[i2].triangles
                 --visualMeshes[i2] = nil
@@ -498,7 +507,4 @@ hook.Add("InitPostShaderlib", "SkyBoxDepth3D", function()
         SkyBox3DUpradeDepth()
     end)
 end)
-
-
-
 
