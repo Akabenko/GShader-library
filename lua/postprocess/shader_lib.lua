@@ -233,12 +233,16 @@ local function InitParams()
 
 	local function EnableReconstruction()
 		if BRANCH != "dev" and BRANCH != "x86-64" and game.SinglePlayer() then
-			LocalPlayer():ChatPrint( "Warning! USE x86-64 or dev version of GMOD. HERE FIXES FOR DEPTH BUFFER OF GMOD FOR MW BASE AND OTHER ADDONS!!!!!!! MAIN WILL BE UPDATED SOON!!!!!!!!" )
+			if IsValid(LocalPlayer()) then
+				LocalPlayer():ChatPrint( "Warning! USE x86-64 or dev version of GMOD. HERE FIXES FOR DEPTH BUFFER OF GMOD FOR MW BASE AND OTHER ADDONS!!!!!!! MAIN WILL BE UPDATED SOON!!!!!!!!" )
+			end
 		end
 		
 		local value = GetConVar("mat_viewportscale"):GetFloat()
 		if value < 1 then
-			LocalPlayer():ChatPrint( "Warning! Your mat_viewportscale is " .. value .. "! Set it to 1! Or shaders broke!" )
+			if IsValid(LocalPlayer()) then
+				LocalPlayer():ChatPrint( "Warning! Your mat_viewportscale is " .. value .. "! Set it to 1! Or shaders broke!" )
+			end
 		end
 
 		--local hook_name = vales_hook[math.Round(math.Clamp(r_shaderlib_hook:GetInt(),0,#vales_hook))] or "PreDrawTranslucentRenderables"
@@ -396,6 +400,7 @@ local function InitParams()
 end
 
 hook.Add("InitPostReconstruction", libName, InitParams)
+
 
 
 
