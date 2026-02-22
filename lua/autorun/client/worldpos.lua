@@ -28,7 +28,7 @@ local function InitReconstruction()
     shaderlib.rt_WPDepth = GetRenderTargetEx("_rt_WPDepth", ScrW(), ScrH(),
         RT_SIZE_FULL_FRAME_BUFFER,
         MATERIAL_RT_DEPTH_NONE,
-        bit.bor(4, 8, 256, 512, 32768, 8388608),
+        bit.bor(1, 4, 8, 256, 512, 32768, 8388608), -- need pointsample flag 1 for reading normals in downsampled rt
         0,
         IMAGE_FORMAT_RGBA32323232F
     )
@@ -36,10 +36,11 @@ local function InitReconstruction()
     shaderlib.rt_NormalsTangents = GetRenderTargetEx("_rt_NormalsTangents", ScrW(), ScrH(),
         RT_SIZE_FULL_FRAME_BUFFER,
         MATERIAL_RT_DEPTH_NONE,
-        bit.bor(4, 8, 256, 512, 32768, 8388608),
+        bit.bor(1, 4, 8, 256, 512, 32768, 8388608), -- need pointsample flag 1 for reading normals in downsampled rt
         0,
         shaderlib.GetWorldNormalsImageFormat()
     )
+
 
     shaderlib.rt_Bump = GetRenderTargetEx("_rt_BumpFog", ScrW(), ScrH(),
         RT_SIZE_FULL_FRAME_BUFFER,
@@ -238,6 +239,7 @@ local function InitReconstruction()
 end
 
 hook.Add("InitReconstruction", shaderName, InitReconstruction)
+
 
 
 
