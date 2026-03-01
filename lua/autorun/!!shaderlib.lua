@@ -3,6 +3,8 @@ if !CLIENT then return end
 GShaderlib authors: Meetric, Akabenko
 ---------------------------------------------------------------------------*/
 
+
+
 GSHADER = true
 RESHADE 	= file.Exists("ReShade.ini", "EXECUTABLE_PATH")
 DGVOODOO 	= file.Exists("dgVoodoo.conf", "EXECUTABLE_PATH")
@@ -107,6 +109,17 @@ VENDORID_INTEL 	= 0x8086
 
 local libName = "shaderlib"
 
+shaderlib = shaderlib or {}
+
+shaderlib.rt_Bump = GetRenderTargetEx("_rt_Bump", ScrW(), ScrH(),
+    RT_SIZE_FULL_FRAME_BUFFER,
+    MATERIAL_RT_DEPTH_SHARED,
+    bit.bor(4,8,256,512),
+    0, 
+    IMAGE_FORMAT_RGBA8888
+)
+
+
 local function InitShaderLib()
 	--RunConsoleCommand("mat_antialias", "0") -- MRT can not works with MSAA (confirm)
 
@@ -207,8 +220,6 @@ local function InitShaderLib()
 	/*---------------------------------------------------------------------------
 	shaderlib
 	---------------------------------------------------------------------------*/
-
-	shaderlib = shaderlib or {}
 
 	local w,h = ScrW(),ScrH()
 	local aspect = w/h
