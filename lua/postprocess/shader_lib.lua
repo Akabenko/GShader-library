@@ -1,16 +1,19 @@
 
 local libName = "shaderlib"
 
+local linux = system.IsLinux()
+
 local r_shaderlib = CreateClientConVar( "r_shaderlib", "1", true, false, "Reconstruct WorldPos, Normals, Tangents.", 0, 1 )
 local r_shaderlib_wn_format = CreateClientConVar( "r_shaderlib_wn_format", "2", true, false, "WorldNormals IMAGE FORMAT.", 0, 2 )
 local r_shaderlib_depthbuffer = CreateClientConVar( "r_shaderlib_depthbuffer", "1", true, false, "Enable/disable depth buffer.", 0, 1 )
-local r_shaderlib_wn_reconsruction = CreateClientConVar( "r_shaderlib_wn_reconsruction", "4", true, false, "Type of WorldNormals reconstruction.", 0, 4 )
+local r_shaderlib_wn_reconsruction = CreateClientConVar( "r_shaderlib_wn_reconsruction", linux and "2" or "4", true, false, "Type of WorldNormals reconstruction.", 0, 4 )
 local r_shaderlib_wn_smooth = CreateClientConVar( "r_shaderlib_wn_smooth", "1", true, false, "Smooth normals.", 0, 1 )
 local r_shaderlib_debug = CreateClientConVar( "r_shaderlib_debug", "0", true, false, "Show rendertargets on HUD.", 0, 1 )
 local r_shaderlib_debug_decode = CreateClientConVar( "r_shaderlib_debug_decode", "0", false, false, "Show decoded rendertargets on HUD.", 0, 1 ) 
 local r_shaderlib_dbg_scale = CreateClientConVar( "r_shaderlib_dbg_scale", "0.5", true, false, "Scale factor debug rt.", 0.4, 1 )
 local r_shaderlib_3tap_offset = CreateClientConVar( "r_shaderlib_3tap_offset", "1", true, false, "Scale factor debug rt.", 0.6, 1.49 )
 local r_shaderlib_3dskybox = CreateClientConVar( "r_shaderlib_3dskybox", "1", true, false, "3D Skybox support", 0, 1 )
+local r_shaderlib_bumps = CreateClientConVar( "r_shaderlib_bumps", "0", true, false, "GShader lib bumps", 0, 1 )
 
 list.Set( "PostProcess", "#r_shaderlib", {
 	["icon"] = "gui/postprocess/shaderlib.jpg",
@@ -35,6 +38,7 @@ list.Set( "PostProcess", "#r_shaderlib", {
 					[ r_shaderlib_debug:GetName() ] 			= r_shaderlib_debug:GetDefault(),
 					[ r_shaderlib_3tap_offset:GetName() ] 		= r_shaderlib_3tap_offset:GetDefault(),
 					[ r_shaderlib_3dskybox:GetName() ] 			= r_shaderlib_3dskybox:GetDefault(),
+					[ r_shaderlib_bumps:GetName() ] 			= r_shaderlib_bumps:GetDefault(),
 				},
 
 				[ "#r_shaderlib.medium" ] = {
@@ -47,7 +51,8 @@ list.Set( "PostProcess", "#r_shaderlib", {
 					[ r_shaderlib_debug_decode:GetName() ] 		= r_shaderlib_debug_decode:GetDefault(),
 					[ r_shaderlib_debug:GetName() ] 			= r_shaderlib_debug:GetDefault(),
 					[ r_shaderlib_3tap_offset:GetName() ] 		= r_shaderlib_3tap_offset:GetDefault(),
-					[ r_shaderlib_3dskybox:GetName() ] 		= r_shaderlib_3dskybox:GetDefault(),
+					[ r_shaderlib_3dskybox:GetName() ] 			= r_shaderlib_3dskybox:GetDefault(),
+					[ r_shaderlib_bumps:GetName() ] 			= r_shaderlib_bumps:GetDefault(),
 				},
 			},
 			["CVars"] = {
@@ -61,12 +66,14 @@ list.Set( "PostProcess", "#r_shaderlib", {
 				r_shaderlib_debug:GetName(),
 				r_shaderlib_3tap_offset:GetName(),
 				r_shaderlib_3dskybox:GetName(),
+				r_shaderlib_bumps:GetName(),
 			}
 		} )
 
 		panel:AddControl( "CheckBox", { ["Label"] = "#r_shaderlib.enable_reconsruction", ["Command"] = r_shaderlib:GetName() } )
 		panel:AddControl( "CheckBox", { ["Label"] = "#r_shaderlib.depthbuffer", ["Command"] = r_shaderlib_depthbuffer:GetName() } )
 		panel:AddControl( "CheckBox", { ["Label"] = "#r_shaderlib.3dskybox", ["Command"] = r_shaderlib_3dskybox:GetName() } )
+		panel:AddControl( "CheckBox", { ["Label"] = "#r_shaderlib.bumps", ["Command"] = r_shaderlib_bumps:GetName() } )
 
 		panel:Help( "#r_shaderlib.reconsruction" )
 
@@ -237,7 +244,7 @@ local function InitParams()
 				LocalPlayer():ChatPrint( "Warning! USE x86-64 or dev version of GMOD. HERE FIXES FOR DEPTH BUFFER OF GMOD FOR MW BASE AND OTHER ADDONS!!!!!!! MAIN WILL BE UPDATED SOON!!!!!!!!" )
 			end
 		end
-		
+
 		local value = GetConVar("mat_viewportscale"):GetFloat()
 		if value < 1 then
 			if IsValid(LocalPlayer()) then
@@ -256,6 +263,7 @@ local function InitParams()
 	end
 
 	if r_shaderlib:GetBool() then EnableReconstruction() end
+	if r_shaderlib_bumps:GetBool() then hook.Run("ActivateGShaderBumps") end
 
 	if !r_shaderlib_depthbuffer:GetBool() then DisableDepthBuffer(LocalPlayer()) end
 
@@ -384,6 +392,16 @@ local function InitParams()
 		end
 	end, libName )
 
+	cvars.AddChangeCallback( r_shaderlib_bumps:GetName(), function( convar_name, _, identifier )
+		local enable = identifier == "1"
+
+		if enable then
+			hook.Run("ActivateGShaderBumps")
+		else 
+			hook.Remove("PostDrawTranslucentRenderables", "GshaderBumps")
+		end
+	end, libName )
+
 	cvars.AddChangeCallback( r_shaderlib_debug:GetName(), function( convar_name, _, identifier )
 		local state = identifier == "1"
 
@@ -400,8 +418,5 @@ local function InitParams()
 end
 
 hook.Add("InitPostReconstruction", libName, InitParams)
-
-
-
 
 
