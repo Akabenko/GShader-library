@@ -6,7 +6,7 @@
 ### List of textures in the addon:
 *  `_rt_WPDepth`
 * `_rt_NormalsTangents`
-* `_rt_BumpFog`
+* `_rt_Bumps`
 * `_rt_ResolvedFullFrameDepth`
 
 ### The addon includes:
@@ -96,10 +96,9 @@ WorldPos and Depth are stored in the render target `_rt_WPDepth`, where:
 * `.RGB` — `1/WorldPos`: This means that WorldPos is packed into values <1. To unpack, use `float3 worldPos = 1/tex2D(WPDepthBuffer,uv).xyz;` in the shader.
 * `.A` — Depth
 
-### _rt_BumpFog
-Normals and Tangents are stored in the render target `_rt_NormalsTangents`, where:
-* `.RGB` — Reconstructed bumps from FrameBuffer
-* `.A`  — Inverted Fog
+### _rt_Bumps
+* `.RGB` — Bumps
+* `.A`  — Specular mask
 
 ### Example of using _rt_BumpFog
 ```hlsl
