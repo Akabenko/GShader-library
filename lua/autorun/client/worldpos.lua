@@ -14,6 +14,11 @@ Shaderlib authors: Meetric, Akabenko
 local shaderName = "Reconstruction"
 local mat_smooth = Material("pp/normal_smooth")
 
+-- детект воды: прогоняем все листья на детект воды
+--local leafs = NikNaks.CurrentMap:GetLeafWaterData()
+
+--PrintTable(leafs)
+
 local function InitReconstruction()
     local wn_formats = {
         [0] = IMAGE_FORMAT_RGBA16161616F;
@@ -39,15 +44,6 @@ local function InitReconstruction()
         bit.bor(1, 4, 8, 256, 512, 32768, 8388608), -- need pointsample flag 1 for reading normals in downsampled rt
         0,
         shaderlib.GetWorldNormalsImageFormat()
-    )
-
-
-    shaderlib.rt_Bump = GetRenderTargetEx("_rt_BumpFog", ScrW(), ScrH(),
-        RT_SIZE_FULL_FRAME_BUFFER,
-        MATERIAL_RT_DEPTH_NONE,
-        bit.bor(4,8,16,256,512,8388608),
-        0, 
-        IMAGE_FORMAT_RGBA8888
     )
 
     local wp_reconst_mat = Material("pp/wp_reconstruction")
@@ -101,6 +97,8 @@ local function InitReconstruction()
 
     local screentexture = render.GetScreenEffectTexture()
 
+    local t_0001 = {0,   0,   0,   1}
+    
     local function get_view_proj_matrix(viewSetup)
         local F = -viewSetup.angles:Forward()
         local R =  viewSetup.angles:Right()
@@ -110,7 +108,7 @@ local function InitReconstruction()
             {R.x, R.y, R.z, 0},
             {U.x, U.y, U.z, 0},
             {F.x, F.y, F.z, 0},
-            {0,   0,   0,   1},
+            t_0001,
         })
 
         -- avoid calculating position offset within shader
@@ -137,7 +135,7 @@ local function InitReconstruction()
         [0] = true;
         [4] = true; -- underwater
     }
-
+    
     function shaderlib.CanDrawEffects(viewSetup)
         viewSetup = viewSetup or render.GetViewSetup(false)
 
@@ -171,8 +169,6 @@ local function InitReconstruction()
             wp_reconst_mat:SetFloat("$c1_x", NikNaks.CurrentMap:GetSkyBoxScale())
         end
 
-        shaderlib.mat_wpndepth:SetFloat("$c3_y", render.GetFogMode() - 1)
-
         local inv_mat = get_view_proj_matrix(viewSetup):GetInverse() --:GetTransposed()
         wp_reconst_mat:SetMatrix("$INVVIEWPROJMAT", inv_mat )
         shaderlib.mat_wpndepth:SetMatrix("$INVVIEWPROJMAT", inv_mat )
@@ -193,7 +189,7 @@ local function InitReconstruction()
                 render.DrawScreenQuad()
 
                 -- we can render here box with worldpos coords
-                
+        
             PopRenderTarget()
 
 
@@ -203,12 +199,12 @@ local function InitReconstruction()
             ]]
 
             render.PushRenderTarget(shaderlib.rt_NormalsTangents)  render.Clear(0,0,0,0) PopRenderTarget()
-            render.PushRenderTarget(shaderlib.rt_Bump) render.Clear(128,128,255,0) PopRenderTarget()
+            --render.PushRenderTarget(shaderlib.rt_Bump) render.Clear(128,128,255,0) PopRenderTarget()
 
             local rt0 = render.GetRenderTarget()
 
             render.SetRenderTargetEx(0, shaderlib.rt_NormalsTangents)
-            render.SetRenderTargetEx(1, shaderlib.rt_Bump)
+            --render.SetRenderTargetEx(1, shaderlib.rt_Bump)
  
             /*---------------------------------------------------------------------------
             Encode Normals using «Octahedron normal vector encoding»; Tangents using «Diamond Encoding».
@@ -237,9 +233,8 @@ local function InitReconstruction()
         hook.Run("PostDrawReconstructionEffects", viewSetup, ViewProj, ViewProjTransposed)
     end
 end
-
+--InitReconstruction()
 hook.Add("InitReconstruction", shaderName, InitReconstruction)
-
 
 
 
