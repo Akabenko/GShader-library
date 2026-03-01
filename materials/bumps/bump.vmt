@@ -1,0 +1,36 @@
+screenspace_general
+{
+	$pixshader 		"bump_ps30"
+	$vertexshader		"bump_vs30"
+
+	//$decal 1
+	//$ignorez     		1
+	//$model 		1
+	//$nodecal 		1
+	//$softwareskin 	1
+	$vertextransform 	1
+	$vertexnormal 	1
+	$writealpha 		1
+	$copyalpha 		1
+
+	"<dx90"
+	{
+		$no_draw 1
+	}
+
+	$dev_flags2 0  //130
+
+	Proxies
+	{
+		Equals
+		{
+			srcVar1		$dev_flags2
+			resultVar		$flags2
+		}
+	}
+
+	
+}
+
+
+
