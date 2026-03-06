@@ -1,7 +1,7 @@
 # GShader library
 — a shader library that serves as the foundation for creating [Deferred Renderer (shading & lighting)](https://developer.valvesoftware.com/wiki/Deferred_renderer) shaders, acting as a convenient tool for creating advanced post-processing effects.
 
-<img width="2048" height="1214" alt="gshader-test" src="https://github.com/user-attachments/assets/5f5e7dac-a170-44d7-b81b-45c30d3632fb" />
+<img width="2048" height="1214" alt="GShader-Main" src="https://github.com/user-attachments/assets/1c25fc8f-2c7d-492a-ba7d-6d0d1682bd64" />
 
 [Link to Workshop steam addon](https://steamcommunity.com/sharedfiles/filedetails/?id=3542644649)
 <br>[Addon requred NikNaks](https://github.com/Nak2/NikNaks/tree/main)
