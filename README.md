@@ -4,6 +4,7 @@
 <img width="2048" height="1214" alt="gshader-test" src="https://github.com/user-attachments/assets/5f5e7dac-a170-44d7-b81b-45c30d3632fb" />
 
 [Link to Workshop steam addon](https://steamcommunity.com/sharedfiles/filedetails/?id=3542644649)
+[Addon requred NikNaks](https://github.com/Nak2/NikNaks/tree/main)
 
 ### List of textures in the addon:
 *  `_rt_WPDepth`
