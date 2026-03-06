@@ -131,7 +131,7 @@ Encoding based on method of CryTeck CryEngine 3 — [Advances in Real-Time Rende
 * puwada — the tip about texture format compatibility and DirectX.
 * [LVutner](https://github.com/LVutner?tab=repositories)  — implementation Velocity Buffer encoding based on CryTeck method.
 * [Zaurzo](https://gist.github.com/Zaurzo)  — creating DynamicLight Wrapper.
-* Blackknight33 — GShaders logo.
+* `@blackknight33` — GShaders logo.
 
 
 ### Links:
