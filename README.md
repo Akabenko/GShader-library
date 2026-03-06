@@ -1,3 +1,5 @@
+<img width="2048" height="1214" alt="gshader-test" src="https://github.com/user-attachments/assets/5f5e7dac-a170-44d7-b81b-45c30d3632fb" />
+
 # GShader library
 — a shader library that serves as the foundation for creating [Deferred Renderer (shading & lighting)](https://developer.valvesoftware.com/wiki/Deferred_renderer) shaders, acting as a convenient tool for creating advanced post-processing effects.
 
