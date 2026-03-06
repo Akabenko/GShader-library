@@ -15,20 +15,20 @@ static const float4 f256_4 = float4(1.0, 256.0, f256_256, f256_256_256);
 static const float4 inv_f256_4 = 1/f256_4;
 static const float3 f3_256 = float3(1.0, 256.0, f256_256);
 
-float2 PackDepth16( in float depth )
+half2 PackDepth16( in float depth )
 {
     float depthVal = depth * f256_256_1_div;
     float3 encode = frac( depthVal * f3_256 );
     return encode.xy - encode.yz / 256.0 + inv_512;
 }
 
-float UnpackDepth16( in float2 pack )
+half UnpackDepth16( in float2 pack )
 {
     float depth = dot( pack, inv_256_2 );
     return depth * f256_256_div1;
 }
 
-float3 PackDepth24( in float depth )
+half3 PackDepth24( in float depth )
 {
     float depthVal = depth * f256_256_256_1_div;
     float4 encode = frac( depthVal * f256_4 );
@@ -41,7 +41,7 @@ float UnpackDepth24( in float3 pack )
   return depth * f256_256_256_div1;
 }
 
-float4 PackDepth32( in float depth )
+half4 PackDepth32( in float depth )
 {
     depth *= f256_256_256_1_div;
     float4 encode = frac( depth * f256_4 );
@@ -53,3 +53,4 @@ float UnpackDepth32( in float4 pack )
     float depth = dot( pack, inv_f256_4 );
     return depth * f256_256_256_div1;
 }
+
