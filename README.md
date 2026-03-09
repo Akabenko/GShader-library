@@ -9,7 +9,7 @@
 ### List of textures in the addon:
 *  `_rt_WPDepth`
 * `_rt_NormalsTangents`
-* `_rt_Bumps`
+* `_rt_Bump`
 * `_rt_ResolvedFullFrameDepth`
 
 ### The addon includes:
