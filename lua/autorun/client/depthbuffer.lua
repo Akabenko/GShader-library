@@ -1,16 +1,17 @@
 
 local libname = "shaderlib"
 
+
+
 local function UpgradeDepthBuffer()
     // This is an improvement of the depth buffer image format. The standard image format is: IMAGE_FORMAT_RGBA8888
     // Thanks to notunknowndude for the idea of a way to upgrade the depth buffer.
 
-    GetRenderTargetEx( render.GetResolvedFullFrameDepth():GetName(), ScrW(), ScrH(),
-         RT_SIZE_FULL_FRAME_BUFFER,
-        --MATERIAL_RT_DEPTH_SEPARATE,
-        MATERIAL_RT_DEPTH_NONE,
-        bit.bor(4, 8, 256, 512, 32768, 65536),
-        0,
+    GetRenderTargetEx( render.GetResolvedFullFrameDepth():GetName(), 1, 1,
+        RT_SIZE_FULL_FRAME_BUFFER,
+        MATERIAL_RT_DEPTH_ONLY,
+        bit.bor(4, 8, 256, 512, 32768),
+        CREATERENDERTARGETFLAGS_NOEDRAM,
         IMAGE_FORMAT_R32F
     )
 
@@ -72,14 +73,22 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
 
     local linux = render.GetDXLevel() == 92 or system.IsLinux() or system.IsOSX() or system.IsProton()
 
-    shaderlib.rt_depth_skybox = GetRenderTargetEx( "_rt_ResolvedFullFrameDepthSky", ScrW(), ScrH(),
+    --[[shaderlib.rt_depth_skybox = GetRenderTargetEx( "_rt_ResolvedFullFrameDepthSky", ScrW(), ScrH(),
         RT_SIZE_FULL_FRAME_BUFFER,
         MATERIAL_RT_DEPTH_NONE,
         bit.bor(4, 8, 256, 512, 32768, 65536),
         0,
         NikNaks and IMAGE_FORMAT_R32F or (linux and IMAGE_FORMAT_RGB888 or IMAGE_FORMAT_I8)
+    )]]
+
+    shaderlib.rt_depth_skybox = GetRenderTargetEx( "_rt_ResolvedFullFrameDepthSky", 1, 1,
+        RT_SIZE_FULL_FRAME_BUFFER,
+        MATERIAL_RT_DEPTH_ONLY,
+        bit.bor(4, 8, 256, 512, 32768),
+        CREATERENDERTARGETFLAGS_NOEDRAM,
+        NikNaks and IMAGE_FORMAT_R32F or (linux and IMAGE_FORMAT_RGB565 or IMAGE_FORMAT_I8)
     )
-    
+
     hook.Add("PreRender", libname, function()
         render.PushRenderTarget(shaderlib.rt_depth_skybox)
             render.Clear( 255, 0, 0, 0 )
@@ -137,9 +146,6 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
 
         for i = 1,#skybox_leafs do
             local leaf = skybox_leafs[i]
-
-            local boxMins = leaf.mins
-            local boxMaxs = leaf.maxs
 
             local faces = {}
             local leaf_faces = leaf:GetFaces(true)
