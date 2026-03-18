@@ -56,14 +56,6 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
 
     local linux = render.GetDXLevel() == 92 or system.IsLinux() or system.IsOSX() or system.IsProton()
 
-    --[[shaderlib.rt_depth_skybox = GetRenderTargetEx( "_rt_ResolvedFullFrameDepthSky", ScrW(), ScrH(),
-        RT_SIZE_FULL_FRAME_BUFFER,
-        MATERIAL_RT_DEPTH_NONE,
-        bit.bor(4, 8, 256, 512, 32768, 65536),
-        0,
-        NikNaks and IMAGE_FORMAT_R32F or (linux and IMAGE_FORMAT_RGB888 or IMAGE_FORMAT_I8)
-    )]]
-
     shaderlib.rt_depth_skybox = GetRenderTargetEx( "_rt_ResolvedFullFrameDepthSky", 1, 1,
         RT_SIZE_FULL_FRAME_BUFFER,
         MATERIAL_RT_DEPTH_ONLY,
