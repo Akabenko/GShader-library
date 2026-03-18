@@ -22,7 +22,7 @@ local function UpgradeDepthBuffer()
     In the shader, the depth at >=4000 units was equal to 1 in the shader.
 
     After upgrading the depth buffer from IMAGE_FORMAT_RGBA8888 to IMAGE_FORMAT with floating point format,
-    it started writing numbers above >1. It began to record depth at a distance of >4000 units, namely the entire scene. 
+    it started writing numbers above >1. It began to write depth at a distance of >4000 units, namely the entire scene. 
     Now it turns out that the distance of 0 — 4000 units is from 0 to 1, 4000 — 8000 units from 1 to 2 and so on.
 
     In this case the sky is equal to exactly depth == 1:
