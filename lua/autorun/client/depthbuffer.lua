@@ -16,23 +16,6 @@ local function UpgradeDepthBuffer()
     )
 
     /*---------------------------------------------------------------------------
-    Selecting the image format of the depth buffer:
-
-    IMAGE_FORMAT_R32F not works on Linux (dx 92). (confirm)
-    IMAGE_FORMAT_RGBA32323232F not works without d3d9ex (mat_disable_d3d9ex 0). (confirm)
-
-    Best format for depth buffer is IMAGE_FORMAT_R32F. 
-
-    But if it is not available to us, then we preserve the quality of the depth buffer,
-    leaving 32 Bit, but use the IMAGE_FORMAT_RGBA32323232F format, which costs more video memory.
-    We sacrifice it for the sake of the quality of the depth buffer.
-
-    If d3d9ex is not available, then we use at least 16 bit, but the IMAGE_FORMAT_R16F bit format does
-    not work (ShaderAPIDX8::CreateD3DTexture: Invalid color format!). So we use IMAGE_FORMAT_RGBA16161616F.
-    But it's still twice as good as the standard image format.
-    ---------------------------------------------------------------------------*/
-
-    /*---------------------------------------------------------------------------
     About the depth buffer render.GetResolvedFullFrameDepth() (_rt_resolvedfullframedepth):
 
     Before increasing the bit depth of the depth buffer, it worked at a distance of 4000.
