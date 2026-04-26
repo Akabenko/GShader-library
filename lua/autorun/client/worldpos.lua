@@ -1,5 +1,3 @@
-
-
 /*---------------------------------------------------------------------------
 Octahedron normal vector encoding:  https://knarkowicz.wordpress.com/2014/04/16/octahedron-normal-vector-encoding/
 Diamond Encoding:                   https://www.jeremyong.com/graphics/2023/01/09/tangent-spaces-and-diamond-encoding/
@@ -13,11 +11,6 @@ Shaderlib authors: Meetric, Akabenko
 ---------------------------------------------------------------------------*/
 local shaderName = "Reconstruction"
 local mat_smooth = Material("pp/normal_smooth")
-
--- детект воды: прогоняем все листья на детект воды
---local leafs = NikNaks.CurrentMap:GetLeafWaterData()
-
---PrintTable(leafs)
 
 local function InitReconstruction()
     local wn_formats = {
@@ -98,11 +91,24 @@ local function InitReconstruction()
     local screentexture = render.GetScreenEffectTexture()
 
     local t_0001 = {0,   0,   0,   1}
+
+    local mViewAng = Matrix()
     
     local function get_view_proj_matrix(viewSetup)
         local F = -viewSetup.angles:Forward()
         local R =  viewSetup.angles:Right()
         local U = -viewSetup.angles:Up() 
+
+        --[[mViewAng:SetUp(U)
+        mViewAng:SetForward(F)
+        mViewAng:SetRight(R)]]
+
+        --[[mViewAng:SetUnpacked(
+            R.x, R.y, R.z, 0,
+            U.x, U.y, U.z, 0,
+            F.x, F.y, F.z, 0,
+            0, 0, 0, 0
+        )]]
 
         local mViewAng = Matrix({
             {R.x, R.y, R.z, 0},
@@ -165,8 +171,12 @@ local function InitReconstruction()
         
         hook.Run("PreDrawReconstruction")
 
-        if NikNaks then -- https://github.com/Facepunch/garrysmod-requests/issues/2979
-            wp_reconst_mat:SetFloat("$c1_x", NikNaks.CurrentMap:GetSkyBoxScale())
+        if game.Get3DSkyboxInfo and game.Get3DSkyboxInfo() then
+             wp_reconst_mat:SetFloat("$c1_x", game.Get3DSkyboxInfo().scale)
+        else
+            if NikNaks then -- https://github.com/Facepunch/garrysmod-requests/issues/2979
+                wp_reconst_mat:SetFloat("$c1_x", NikNaks.CurrentMap:GetSkyBoxScale())
+            end
         end
 
         local inv_mat = get_view_proj_matrix(viewSetup):GetInverse() --:GetTransposed()
@@ -185,56 +195,31 @@ local function InitReconstruction()
         cam.Start2D()
             render.PushRenderTarget(shaderlib.rt_WPDepth)
                 render.Clear(0,0,0,0,true)
-                SetMaterial(wp_reconst_mat)
+                render.SetMaterial(wp_reconst_mat)
+                render.DrawScreenQuad()
+            render.PopRenderTarget()
+
+            render.PushRenderTarget(shaderlib.rt_NormalsTangents)
+                render.Clear(0,0,0,0) 
+                SetMaterial(shaderlib.mat_wpndepth)
                 render.DrawScreenQuad()
 
-                -- we can render here box with worldpos coords
-        
-            PopRenderTarget()
-
-
-            --[[
-            render.PushRenderTarget(shaderlib.rt_NormalsTangents) render.Clear(0,0,0,0,true) PopRenderTarget()
-            render.PushRenderTarget(shaderlib.rt_Bump) render.Clear(128,128,255,0,true) PopRenderTarget()
-            ]]
-
-            render.PushRenderTarget(shaderlib.rt_NormalsTangents)  render.Clear(0,0,0,0) PopRenderTarget()
-            --render.PushRenderTarget(shaderlib.rt_Bump) render.Clear(128,128,255,0) PopRenderTarget()
-
-            local rt0 = render.GetRenderTarget()
-
-            render.SetRenderTargetEx(0, shaderlib.rt_NormalsTangents)
-            --render.SetRenderTargetEx(1, shaderlib.rt_Bump)
- 
-            /*---------------------------------------------------------------------------
-            Encode Normals using «Octahedron normal vector encoding»; Tangents using «Diamond Encoding».
-            .RG - Normals, .B - Tangents, .A - sign.
-            ---------------------------------------------------------------------------*/
-
-            SetMaterial(shaderlib.mat_wpndepth)
-            shaderlib.DrawScreenQuad() // use Multy Render Target, need custom function to DrawScreenQuad
-
-            render.SetRenderTargetEx(1)
-
-            if shaderlib.normals_smooth then
-                SetMaterial(mat_smooth)
-                render.DrawScreenQuad()
-            end
-
-            render.SetRenderTargetEx(0, rt0)
+                --[[if shaderlib.normals_smooth then
+                    render.SetMaterial(mat_smooth)
+                    render.DrawScreenQuad()
+                end]]
+            render.PopRenderTarget()
         cam.End2D()
 
-        local ViewProj = shaderlib.GetViewProjMatrix(viewSetup)
-        local ViewProjTransposed = ViewProj:GetTransposed()
+        --local ViewProj = shaderlib.GetViewProjMatrix(viewSetup)
+        --local ViewProjTransposed = ViewProj:GetTransposed()
 
-        hook.Run("PostDrawReconstruction", viewSetup, ViewProj, ViewProjTransposed)
-        hook.Run("PostDrawReconstructionPreEffects", viewSetup, ViewProj, ViewProjTransposed)
-        hook.Run("PostDrawReconstructionLighting", viewSetup, ViewProj, ViewProjTransposed)
-        hook.Run("PostDrawReconstructionEffects", viewSetup, ViewProj, ViewProjTransposed)
+        hook.Run("PostDrawReconstruction", viewSetup)
+        hook.Run("PostDrawReconstructionPreEffects", viewSetup)
+        hook.Run("PostDrawReconstructionLighting", viewSetup)
+        hook.Run("PostDrawReconstructionEffects", viewSetup)
     end
 end
 --InitReconstruction()
 hook.Add("InitReconstruction", shaderName, InitReconstruction)
-
-
 
