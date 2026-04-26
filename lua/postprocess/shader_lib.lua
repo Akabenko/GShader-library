@@ -7,11 +7,11 @@ local r_shaderlib = CreateClientConVar( "r_shaderlib", "1", true, false, "Recons
 local r_shaderlib_wn_format = CreateClientConVar( "r_shaderlib_wn_format", "2", true, false, "WorldNormals IMAGE FORMAT.", 0, 2 )
 local r_shaderlib_depthbuffer = CreateClientConVar( "r_shaderlib_depthbuffer", "1", true, false, "Enable/disable depth buffer.", 0, 1 )
 local r_shaderlib_wn_reconsruction = CreateClientConVar( "r_shaderlib_wn_reconsruction", linux and "2" or "4", true, false, "Type of WorldNormals reconstruction.", 0, 4 )
-local r_shaderlib_wn_smooth = CreateClientConVar( "r_shaderlib_wn_smooth", "1", true, false, "Smooth normals.", 0, 1 )
+local r_shaderlib_wn_smooth = CreateClientConVar( "r_shaderlib_wn_smooth", "0", true, false, "Smooth normals.", 0, 1 )
 local r_shaderlib_debug = CreateClientConVar( "r_shaderlib_debug", "0", true, false, "Show rendertargets on HUD.", 0, 1 )
 local r_shaderlib_debug_decode = CreateClientConVar( "r_shaderlib_debug_decode", "0", false, false, "Show decoded rendertargets on HUD.", 0, 1 ) 
 local r_shaderlib_dbg_scale = CreateClientConVar( "r_shaderlib_dbg_scale", "0.5", true, false, "Scale factor debug rt.", 0.4, 1 )
-local r_shaderlib_3tap_offset = CreateClientConVar( "r_shaderlib_3tap_offset", "1", true, false, "Scale factor debug rt.", 0.6, 1.49 )
+local r_shaderlib_3tap_offset = CreateClientConVar( "r_shaderlib_3tap_offset", "1", true, false, "Scale factor debug rt.", 0.5, 2 )
 local r_shaderlib_3dskybox = CreateClientConVar( "r_shaderlib_3dskybox", "1", true, false, "3D Skybox support", 0, 1 )
 local r_shaderlib_bumps = CreateClientConVar( "r_shaderlib_bumps", "0", true, false, "GShader lib bumps", 0, 1 )
 
@@ -134,7 +134,7 @@ list.Set( "PostProcess", "#r_shaderlib", {
 			["Help"] = false
 		} )
 
-		panel:AddControl( "CheckBox", { ["Label"] = "#r_shaderlib.wn_smooth", ["Command"] = r_shaderlib_wn_smooth:GetName() } )
+		--panel:AddControl( "CheckBox", { ["Label"] = "#r_shaderlib.wn_smooth", ["Command"] = r_shaderlib_wn_smooth:GetName() } )
 		panel:Help( "#r_shaderlib.encode" )
 		panel:Help( "#r_shaderlib.debug" )
 		panel:AddControl( "CheckBox", { ["Label"] = "#r_shaderlib.debug_enable", ["Command"] = r_shaderlib_debug:GetName() } )
@@ -150,9 +150,30 @@ list.Set( "PostProcess", "#r_shaderlib", {
 			["Help"] = false
 		} )
 
+		local linux = system.IsLinux()
+        local osx = system.IsOSX()
+        local dxlevel = render.GetDXLevel()
+        if DXVK then dxlevel = "VULKAN" end
+        local proton = system.IsProton()
+        local osname = "Windows"
+        if linux then osname = "Linux" end
+        if osx then osname = "OSX" end
+        if proton then osname = "Proton" end
+
+        local text = "OS System: " .. osname .. "\nDirectX level: " .. dxlevel
+        local video_vendor = system.GetVendor()
+        if video_vendor != "UNKNOWN" then
+            text = text .. "\nVideo Vendor: " .. video_vendor
+            text = text .. "\nDriver name: " .. system.GetDriverName()
+        end
+        
+        if RESHADE then text = text .. "\nReshade enabled" end
+        if DGVOODOO then text = text .. "\nDGVOODOO enabled" end
+        
+        panel:Help( text )
+
 	end
 } )
-
 
 STORE_DEPTH_HOOKS = STORE_DEPTH_HOOKS or table.Copy( hook.GetTable()["NeedsDepthPass"] )
 
@@ -179,6 +200,7 @@ cvars.AddChangeCallback( r_shaderlib_depthbuffer:GetName(), function( convar_nam
 			if debug_mode then
 				ply:PrintMessage( HUD_PRINTTALK, "Added NeedsDepthPass "..hook_name.." hook." )
 			end
+			hook.Add("NeedsDepthPass", libName, function() return true end)
 		end
 	else
 		DisableDepthBuffer(ply)
@@ -244,7 +266,7 @@ local function InitParams()
 				LocalPlayer():ChatPrint( "Warning! USE x86-64 or dev version of GMOD. HERE FIXES FOR DEPTH BUFFER OF GMOD FOR MW BASE AND OTHER ADDONS!!!!!!! MAIN WILL BE UPDATED SOON!!!!!!!!" )
 			end
 		end
-
+		
 		local value = GetConVar("mat_viewportscale"):GetFloat()
 		if value < 1 then
 			if IsValid(LocalPlayer()) then
@@ -253,8 +275,10 @@ local function InitParams()
 		end
 
 		--local hook_name = vales_hook[math.Round(math.Clamp(r_shaderlib_hook:GetInt(),0,#vales_hook))] or "PreDrawTranslucentRenderables"
-		local hook_name = "PreDrawTranslucentRenderables"
+		local hook_name = "PreDrawTranslucentRenderables" 
 		--hook_name = "PreDrawEffects" -- ok
+
+		hook.Add("PreDrawOpaqueRenderables", "WriteFogMode", function() MATERIAL_FOG_MODE = render.GetFogMode() - 1 end)
 
 		--hook_name = "PreDrawViewModels"
 		hook.Add(hook_name, libName, function(isDrawingDepth, isDrawSkybox, isDraw3DSkybox)
@@ -279,12 +303,16 @@ local function InitParams()
 		[4] = Material("pp/wpn_reconstruction_accurate");
 	}
 
-	nm_mats[1]:SetFloat("$c1_x", r_shaderlib_3tap_offset:GetFloat())
+	local function initoffset()
+		for i = 0, 4 do
+			nm_mats[i]:SetFloat("$c1_x", r_shaderlib_3tap_offset:GetFloat() )
+		end
+	end
 
-	cvars.AddChangeCallback( r_shaderlib_3tap_offset:GetName(), function( convar_name, _, identifier )
-		nm_mats[1]:SetFloat("$c1_x", identifier)
-	end, libName )
-
+	timer.Simple(0, function()
+		initoffset()
+	end)
+	cvars.AddChangeCallback( r_shaderlib_3tap_offset:GetName(), initoffset, libName )
 
 	local function getCurrentMethodMat(i)
 		i = math.Clamp(math.Round(i), 0, r_shaderlib_wn_reconsruction:GetMax())
@@ -320,10 +348,10 @@ local function InitParams()
 			nm_name = nm_name .. "\n.A — Sign"
 		end
 
-		local bm_name = shaderlib.rt_Bump:GetName() .." " .. shaderlib.rt_Bump:Width() .. "x" .. shaderlib.rt_Bump:Height() .. "\n".."IMAGE_FORMAT_RGBA8888".. "\n.RGB — Bumps\n.A — Fog"
+		local bm_name = shaderlib.rt_Bump:GetName() .." " .. shaderlib.rt_Bump:Width() .. "x" .. shaderlib.rt_Bump:Height() .. "\n".."IMAGE_FORMAT_RGBA8888".. "\n.RGB — Bumps\n.A — Specular mask"
 
 		local depth_buffer = render.GetResolvedFullFrameDepth()
-		local depth_name = depth_buffer:GetName() .." " .. depth_buffer:Width() .. "x" .. depth_buffer:Height() .. "\n"..(render.GetDXLevel() == 92 and "IMAGE_FORMAT_RGBA32323232F" or "IMAGE_FORMAT_R32F").. "\n.R — Depth"
+		local depth_name = depth_buffer:GetName() .." " .. depth_buffer:Width() .. "x" .. depth_buffer:Height() .. "\n".."IMAGE_FORMAT_R32F".. "\n.R — Depth"
 
 		--local fog_name = shaderlib.rt_Fog:GetName() .." " .. shaderlib.rt_Fog:Width() .. "x" .. shaderlib.rt_Fog:Height() .. "\n".."IMAGE_FORMAT_I8".. "\n.R — Fog mask"
 
@@ -346,8 +374,13 @@ local function InitParams()
 
 	        local x2 = ScrW()-scrw*2
 
+	        
 	        render.DrawTextureToScreenRect(depth_buffer, x2, 0, scrw, scrh)
 	        draw.DrawText(depth_name, "DebugOverlay", x2, 0, color_white)
+
+	        local depthsky_name = shaderlib.rt_depth_skybox:GetName() .." " .. shaderlib.rt_depth_skybox:Width() .. "x" .. shaderlib.rt_depth_skybox:Height() .. "\n".."IMAGE_FORMAT_R32F".. "\n.R — Depth"
+	        render.DrawTextureToScreenRect(shaderlib.rt_depth_skybox, x2, scrh, scrw, scrh)
+	        draw.DrawText(depthsky_name, "DebugOverlay", x2, scrh, color_white)
 
 	        local x3 = ScrW()-scrw*3
 
@@ -387,6 +420,7 @@ local function InitParams()
 
 			if r_shaderlib_debug:GetBool() then shaderlib.EnableDebugMode() end
 		else 
+			hook.Remove("PreDrawOpaqueRenderables", "WriteFogMode")
 			hook.Remove("HUDPaint", libName)
 			hook.Remove("PreDrawTranslucentRenderables", libName)
 		end
@@ -398,7 +432,14 @@ local function InitParams()
 		if enable then
 			hook.Run("ActivateGShaderBumps")
 		else 
-			hook.Remove("PostDrawTranslucentRenderables", "GshaderBumps")
+			hook.Remove("PreDrawEffects", "GshaderBumps") -- PostDrawTranslucentRenderables  PreDrawEffects
+
+			hook.Add("PreRender", libName, function()
+				render.PushRenderTarget(shaderlib.rt_Bump)
+				render.Clear(0,0,0,0)
+				render.PopRenderTarget()
+				hook.Remove("PreRender", libName)
+			end)
 		end
 	end, libName )
 
@@ -418,5 +459,4 @@ local function InitParams()
 end
 
 hook.Add("InitPostReconstruction", libName, InitParams)
-
 
