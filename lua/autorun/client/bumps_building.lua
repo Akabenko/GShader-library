@@ -13,28 +13,41 @@ bumpmap
 bumpmap2
 ]]
 
-local bump_ref = Material("bumps/bump")
+local function getKV(mat)
+	local tbl = mat:GetKeyValues()
+	tbl["$flags_defined"] = nil
+	tbl["$flags_defined2"] = nil
+	tbl["$flags"] = nil
+	tbl["$flags2"] = nil
+	return tbl
+end
 
+local mat_water = CreateMaterial("water_mask", "screenspace_general", {
+	["$vertexshader"] = "bump_vs30";
+	["$pixshader"] = "white_ps20";
+})
+
+local bump_ref = Material("bumps/bump")
 local shader_mat = bump_ref:GetShader()
-local shader_keyvalues = bump_ref:GetKeyValues()
-shader_keyvalues["$flags_defined"] = nil
-shader_keyvalues["$flags_defined2"] = nil
-shader_keyvalues["$flags"] = nil
-shader_keyvalues["$flags2"] = nil
+local shader_keyvalues = getKV(bump_ref)
 
 local bump_ref_alphatest = Material("bumps/bump_alphatest")
-local shader_alphatest_keyvalues = bump_ref_alphatest:GetKeyValues()
-shader_alphatest_keyvalues["$flags_defined"] = nil
-shader_alphatest_keyvalues["$flags_defined2"] = nil
-shader_alphatest_keyvalues["$flags"] = nil
-shader_alphatest_keyvalues["$flags2"] = nil
+local shader_alphatest_keyvalues = getKV(bump_ref_alphatest)
 
 local bump_ref_ssbump = Material("bumps/bump_ssbump")
-local shader_ssbump_keyvalues = bump_ref_ssbump:GetKeyValues()
-shader_ssbump_keyvalues["$flags_defined"] = nil
-shader_ssbump_keyvalues["$flags_defined2"] = nil
-shader_ssbump_keyvalues["$flags"] = nil
-shader_ssbump_keyvalues["$flags2"] = nil
+local shader_ssbump_keyvalues = getKV(bump_ref_ssbump)
+
+local bump_ref_worldvertextransition = Material("bumps/bump_worldvertextransition")
+local shader_worldvertextransition_keyvalues = getKV(bump_ref_worldvertextransition)
+
+local bump_ref_worldvertextransition_ssbump = Material("bumps/bump_worldvertextransition_ssbump")
+local shader_worldvertextransition_ssbump_keyvalues = getKV(bump_ref_worldvertextransition_ssbump)
+
+local bump_ref_worldvertextransition_modulate = Material("bumps/bump_worldvertextransition_modulate")
+local shader_worldvertextransition_modulate_keyvalues = getKV(bump_ref_worldvertextransition_modulate)
+
+local bump_ref_worldvertextransition_modulate_ssbump = Material("bumps/bump_worldvertextransition_modulate_ssbump")
+local shader_worldvertextransition_modulate_ssbump_keyvalues = getKV(bump_ref_worldvertextransition_modulate_ssbump)
 
 local cachedMaterials = {}
 
@@ -110,11 +123,11 @@ local phys_rougness_values = {
 	
 	-- concrete/rock
 	["boulder"] = 0.9,
-	["brick"] = 0.8,
-	["concrete"] = 0.9,
-	["concrete_block"] = 0.9,
+	["brick"] = 0.97,
+	["concrete"] = 0.95,
+	["concrete_block"] = 0.95,
 	["gravel"] = 0.95,
-	["rock"] = 0.85,
+	["rock"] = 0.97,
 	
 	-- metal
 	["canister"] = 0.4,
@@ -203,19 +216,20 @@ local matrix_dummy = Matrix()
 matrix_dummy:Identity()
 
 local uncompleted_shaders = {
-	["WorldVertexTransition"] = true;
 	["Lightmapped_4WayBlend"] = true;
 	["Lightmapped_4WayBlend_DX9"] = true;
-	["WorldVertexTransition_DX9"] = true;
 }
 
+local i = 0
+
 local function createSpecMat(tex)
+	i = i + 1
 	local orig_mat = getMaterial( tex )
 
 	local orig_shader = orig_mat:GetShader()
 
 	if uncompleted_shaders[orig_shader] then
-		return false
+		--return false -- waiting for Naks
 	end
 
 	local bump = orig_mat:GetTexture("$bumpmap")
@@ -239,8 +253,9 @@ local function createSpecMat(tex)
 		local mat_file_included = file.Read( name_vmt_included, "GAME" )
 		if mat_file_included then
 			local key_values_included = util.KeyValuesToTable( mat_file_included )
-			--table.Add( key_values, key_values_included ) -- idk but it not works
-			key_values = key_values_included
+
+			table.Merge( key_values, key_values_included ) -- idk but it not works
+			--key_values = key_values_included
 		end
 	end
 
@@ -263,9 +278,20 @@ local function createSpecMat(tex)
 	local alphatest = (key_values["$alphatest"] or 0) >= 1
 	local ssbump = (key_values["$ssbump"] or 0) >= 1 -- or (key_values["$ssbumpmathfix"] or 0) >= 1
 
-	local cur_keyvalues = {}
+	local modulate = false
+	local blendmodulate = orig_mat:GetTexture("$blendmodulatetexture")
 
-	if ssbump then
+	local cur_keyvalues = {}
+	local disp = false
+	if orig_shader == "WorldVertexTransition" or orig_shader == "WorldVertexTransition_DX9" then
+		disp = true
+		if blendmodulate and !blendmodulate:IsError() and blendmodulate:GetName() != "error" then
+			modulate = true
+			cur_keyvalues = ssbump and shader_worldvertextransition_modulate_ssbump_keyvalues or shader_worldvertextransition_modulate_keyvalues
+		else
+			cur_keyvalues = ssbump and shader_worldvertextransition_ssbump_keyvalues or shader_worldvertextransition_keyvalues
+		end
+	elseif ssbump then
 		cur_keyvalues = shader_ssbump_keyvalues
 	elseif alphatest then
 		cur_keyvalues = shader_alphatest_keyvalues
@@ -273,9 +299,9 @@ local function createSpecMat(tex)
 		cur_keyvalues = shader_keyvalues
 	end
 	
-	local mat = createMaterial(orig_mat:GetName().."_ssr", shader_mat, cur_keyvalues )
+	local mat = createMaterial(orig_mat:GetName().."_rtbump", shader_mat, cur_keyvalues )
 
-	mat:SetMatrix("$VIEWPROJMAT", mTransform)
+	mat:SetMatrix("$VIEWPROJMAT", mTransform) -- basetexturetransform
 	
 	if envmapmask and !envmapmask:IsError() then
 		mat:SetTexture("$texture2", envmapmask)
@@ -285,11 +311,26 @@ local function createSpecMat(tex)
 		mat:SetFloat("$c1_z", 1 )
 	end
 
-	-- нужно добавить поддержку basetexture transform
+	if modulate then
+		mat:SetTexture("$texture2", blendmodulate)
+	end
 
 	mat:SetTexture("$texture1", bump)
+
+	if disp then
+		local bump2 = orig_mat:GetTexture("$bumpmap2")
+		if bump2 and !bump2:IsErrorTexture() then 
+			mat:SetTexture("$texture3", bump2)
+		else
+			mat:SetTexture("$texture3", bump) -- fallback. кажется, что иногда он нужен
+			-- WorldVertexTransition
+		end
+	end
+
 	--mat:SetFloat("$flags2", 130)
-	--mat:SetFloat("$flags", 65536) -- decal
+	mat:SetInt("$flags", 65536 + 1024 + 2048 + 32768 + 2 + 8192  ) -- decal 
+	mat:SetInt("$flags2", 510 )
+	--mat:SetInt("$cull", 1 )
 
 	mat:SetFloat("$c1_x", ssrtint)
 
@@ -314,21 +355,21 @@ local blacklist_mat = {
 	["tools/toolsskybox"] = true,
 }
 
+faces_water = faces_water or {}
+
 local function BuildMeshes(includeDisplacment)
 	local faces = NikNaks.CurrentMap:GetFaces(includeDisplacment)
 	local mats_vertexes = {}
 
 	for i = 1, #faces do
 		local face = faces[i]
-
-		if face:HasTexInfoFlag(0x08) then continue end
-		if face:GetEntity().classname != "worldspawn" then continue end
+		if !face then continue end
+		if face:HasTexInfoFlag(0x08) then faces_water[#faces_water + 1] = face continue end
+		local ent = face:GetEntity()
+		if IsValid(ent) and ent.classname != "worldspawn" then continue end
 		if face:IsSkyBox() then continue end
 		if face:IsSkyBox3D() then continue end
-		--if face:IsDisplacement() then continue end
-		/* убираем нахуй диспы из SSR, тк их математика
-		не идентична парсингу ( тем более бленд не работает ) */
-		
+
 		local disp = face:IsDisplacement()
 
 		local tex = string.lower( face:GetTexData().nameStringTableID )
@@ -338,29 +379,46 @@ local function BuildMeshes(includeDisplacment)
 		local phong, orig_mat = CheckPhong(tex)
 		local ssrtint = getSum(orig_mat)
 
-		--if phong or ssrtint > 0 then
-			local triangles = face:GenerateVertexTriangleData()
+		local triangles = face:GenerateVertexTriangleData()
 
-			if !mats_vertexes[tex] then mats_vertexes[tex] = {} end
+		if !mats_vertexes[tex] then mats_vertexes[tex] = {} end
 
-			local index = #mats_vertexes[tex]
+		local index = #mats_vertexes[tex]
 
-			if !mats_vertexes[tex][index] then mats_vertexes[tex][index] = {} end
+		if !mats_vertexes[tex][index] then mats_vertexes[tex][index] = {} end
 
-			if #triangles + #mats_vertexes[tex][index] > vertex_limit then
-				index = index + 1
-			end
+		if #triangles + #mats_vertexes[tex][index] > vertex_limit then
+			index = index + 1
+		end
 
-			if !mats_vertexes[tex][index] then mats_vertexes[tex][index] = {} end
+		if !mats_vertexes[tex][index] then mats_vertexes[tex][index] = {} end
 
-			tableAdd(mats_vertexes[tex][index], triangles)
-		--end
+		tableAdd(mats_vertexes[tex][index], triangles)
+
+		-- remove temp data
+		face._vertTriangleData = nil
+		face._vertex = nil
+	end
+
+	local water_verts = {}
+
+	for i = 1,#faces_water do
+		local face = faces_water[i]
+		local triangles = face:GenerateVertexTriangleData()
+		tableAdd(water_verts, triangles)
+
+		face._vertTriangleData = nil
+		face._vertex = nil
+	end
+
+	if !table.IsEmpty(water_verts) then
+		_WATER_MESH = Mesh()
+		_WATER_MESH:BuildFromTriangles(water_verts)
 	end
 
 	local meshes = {}
 	local mats = {}
 
-	-- диспы нужно в отдельную таблицу. чтобы им выставить другой bias
 	for tex,v in pairs(mats_vertexes) do
 		for index, vertexes in pairs(v) do
 			local mat = createSpecMat(tex)
@@ -373,12 +431,18 @@ local function BuildMeshes(includeDisplacment)
 		end
 	end
 
-	BUILDED_MESHES = true
+	-- remove temp data
+	NikNaks.CurrentMap._faces = nil
+	NikNaks.CurrentMap._tinfo = nil
+	NikNaks.CurrentMap._edge = nil
+	NikNaks.CurrentMap._plane = nil
+
+	collectgarbage("collect")
 
 	return meshes, mats
 end
 
-local includeDisplacment = false
+local includeDisplacment = true
 
 hook.Add("InitPostEntity", shaderName, function()
 	timer.Simple(1, function()
@@ -387,27 +451,32 @@ hook.Add("InitPostEntity", shaderName, function()
 end)
 
 hook.Add("ActivateGShaderBumps", shaderName, function()
-	hook.Add("PostDrawTranslucentRenderables", shaderName, function(viewSetup) 
+	hook.Add("PreDrawEffects", shaderName, function()  -- PreDrawEffects PostDrawTranslucentRenderables
 		local viewSetup = render.GetViewSetup()
 		if !shaderlib.CanDrawEffects(viewSetup) then return end
-		local old_viewSetup = table.Copy(viewSetup) -- wtf
-		viewSetup.znear = viewSetup.znear + 0.005 -- bias 0.005
+		viewSetup.znear = viewSetup.znear + 0.005
+		viewSetup.zfar = viewSetup.zfar + 10
 		
 		cam.Start(viewSetup)
 		render.PushRenderTarget(shaderlib.rt_Bump)
 			render.Clear(0,0,0,0)
-
+			--render.SetColorMaterial()
 			render.OverrideDepthEnable(true,true)
-
 			for i = 1, #MESHES do
-				
 				render.SetMaterial(MATS[i])
 				local _mesh = MESHES[i]
 				_mesh:Draw(STUDIO_RENDER + STUDIO_NOSHADOWS)
+			end
+			
+			if IsValid(_WATER_MESH) then
+				render.SetMaterial(mat_water)
+				_WATER_MESH:Draw(STUDIO_RENDER + STUDIO_NOSHADOWS)
 			end
 
 			render.OverrideDepthEnable(false,false)
 		render.PopRenderTarget()
 		cam.End()
+
+		hook.Run("PostBumpDraw")
 	end)
 end)
