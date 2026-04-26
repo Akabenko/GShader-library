@@ -1,0 +1,14 @@
+screenspace_general
+{
+	$pixshader "lut_writting_ps30"
+	$vertexshader "pp_vs30"
+	
+	$writealpha 1
+	$copyalpha 1
+	$vertextransform 1
+	
+	$c0_x 0
+	$c0_y 0
+	$c0_z 0
+	$c0_w 0
+}
