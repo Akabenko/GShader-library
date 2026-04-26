@@ -1,8 +1,6 @@
 
 local libname = "shaderlib"
 
-
-
 local function UpgradeDepthBuffer()
     // This is an improvement of the depth buffer image format. The standard image format is: IMAGE_FORMAT_RGBA8888
     // Thanks to notunknowndude for the idea of a way to upgrade the depth buffer.
@@ -16,13 +14,30 @@ local function UpgradeDepthBuffer()
     )
 
     /*---------------------------------------------------------------------------
+    Selecting the image format of the depth buffer:
+
+    IMAGE_FORMAT_R32F not works on Linux (dx 92). (confirm)
+    IMAGE_FORMAT_RGBA32323232F not works without d3d9ex (mat_disable_d3d9ex 0). (confirm)
+
+    Best format for depth buffer is IMAGE_FORMAT_R32F. 
+
+    But if it is not available to us, then we preserve the quality of the depth buffer,
+    leaving 32 Bit, but use the IMAGE_FORMAT_RGBA32323232F format, which costs more video memory.
+    We sacrifice it for the sake of the quality of the depth buffer.
+
+    If d3d9ex is not available, then we use at least 16 bit, but the IMAGE_FORMAT_R16F bit format does
+    not work (ShaderAPIDX8::CreateD3DTexture: Invalid color format!). So we use IMAGE_FORMAT_RGBA16161616F.
+    But it's still twice as good as the standard image format.
+    ---------------------------------------------------------------------------*/
+
+    /*---------------------------------------------------------------------------
     About the depth buffer render.GetResolvedFullFrameDepth() (_rt_resolvedfullframedepth):
 
     Before increasing the bit depth of the depth buffer, it worked at a distance of 4000.
     In the shader, the depth at >=4000 units was equal to 1 in the shader.
 
     After upgrading the depth buffer from IMAGE_FORMAT_RGBA8888 to IMAGE_FORMAT with floating point format,
-    it started writing numbers above >1. It began to write depth at a distance of >4000 units, namely the entire scene. 
+    it started writing numbers above >1. It began to record depth at a distance of >4000 units, namely the entire scene. 
     Now it turns out that the distance of 0 — 4000 units is from 0 to 1, 4000 — 8000 units from 1 to 2 and so on.
 
     In this case the sky is equal to exactly depth == 1:
@@ -44,8 +59,6 @@ local function UpgradeDepthBuffer()
 end
 
 hook.Add("InitPostShaderlib", libname, UpgradeDepthBuffer)
-
-
 
 local function SkyBox3DUpradeDepth() -- 3D skybox support
     local render = render
@@ -129,7 +142,7 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
                 local face = leaf_faces[k]
                 if !face then continue end
                 --print(k, face, #leaf_faces)
-                --if face:HasTexInfoFlag(0x08) then continue end -- DEAR ESTRA
+                --if face:HasTexInfoFlag(0x08) then continue end -- DEAR ESTHER
                 local tex = string.lower( face:GetTexData().nameStringTableID )
                 if blacklist_mat[tex] then continue end
 
@@ -169,6 +182,7 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
         end
 
         skybox_static_props = NikNaks.CurrentMap:FindStaticInBox( skybox_mins, skybox_maxs )
+        --PrintTable(skybox_static_props)
     end
 
     local vertex_limit = math.floor(65535/3)
@@ -413,55 +427,151 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
     local static_prop_combined, vertexes_tbl_alpha = SortVertexByMat(skybox_static_props)
     local static_prop_combined_alpha, combined_depth_mats = CreateCombinedMesh(vertexes_tbl_alpha)
 
+    local convar_3dskylib = GetConVar("r_shaderlib_3dskybox")
+    local convar_3dsky = GetConVar("r_3dsky")
+
+
+    -- Xenthio's skybox visible optimization
+    local _leafs = NikNaks.CurrentMap:GetLeafs()
+    local _nodes = NikNaks.CurrentMap:GetNodes()
+    local CHUNK_PER_FRAME = 64
+    local _ready         = false
+    local _building      = false
+    local _buildIdx      = 1
+    local _buildTotal    = 0
+    local _skyClusters   = nil
+
+    local function buildSkyClusters()
+        _skyClusters = _skyClusters or {}
+        for i = 1, #_leafs do
+            local lf = _leafs[i]
+            if lf and lf.cluster and lf.cluster >= 0 and lf:HasSkyboxInPVS() then
+                _skyClusters[lf.cluster] = true
+            end
+        end
+    end
+
+    buildSkyClusters()
+
+    local function processLeaf(leaf)
+        if not leaf or not leaf.cluster or leaf.cluster < 0 then return false end
+
+        -- Short-circuit: if our own leaf already sees the skybox, trivially true.
+        if leaf:HasSkyboxInPVS() then return true end
+
+        -- Build PVS for this leaf and see if any visible cluster is sky-flagged.
+        local pvs = leaf:CreatePVS()
+        if not pvs then return false end
+        for cluster in pairs(pvs) do
+            if cluster ~= "__map" and _skyClusters[cluster] then
+                return true
+            end
+        end
+        return false
+    end
+
+    local function tickBuild()
+        if not _building then return end
+
+        local stop = math.min(_buildIdx + CHUNK_PER_FRAME - 1, _buildTotal)
+        for i = _buildIdx, stop do
+            local lf = _leafs[i]
+            _seesSky[i] = lf and processLeaf(lf) or false
+        end
+        _buildIdx = stop + 1
+
+        if _buildIdx > _buildTotal then
+            _building = false
+            _ready    = true
+        end
+    end
+
+    hook.Add("Think", libname, tickBuild)
+
+    local _dot = function(a, b) return a:Dot(b) end
+
+    local function pointInLeaf(pos)
+        local nodes = _nodes
+        local leafs  = _leafs
+        local nodeIdx = 0
+
+        while nodeIdx >= 0 do
+            local node  = nodes[nodeIdx]
+            local plane = node.plane
+            local dist
+            local t = plane.type
+            if     t == 0 then dist = pos.x - plane.dist
+            elseif t == 1 then dist = pos.y - plane.dist
+            elseif t == 2 then dist = pos.z - plane.dist
+            else               dist = _dot(pos, plane.normal) - plane.dist
+            end
+            nodeIdx = dist >= 0 and node.children[1] or node.children[2]
+        end
+
+        return leafs[-nodeIdx - 1]
+    end
+
+    shaderlib.sky3d_state = shaderlib.sky3d_state or true
+
     hook.Add("PreDrawReconstruction", libname, function()
-        if !GetConVar("r_shaderlib_3dskybox"):GetBool() then return end
-        if !GetConVar("r_3dsky"):GetBool() then return end
+        if !convar_3dskylib:GetBool() then return end
+        if !convar_3dsky:GetBool() then return end
         if hook.Run("NeedsDepthPass") != true then return end
         
         local viewSetup = render.GetViewSetup()
 
+        local leaf = pointInLeaf(EyePos())
+        local sky_visible = leaf:HasSkyboxInPVS()
+
+        if !sky_visible and !shaderlib.sky3d_state then return end
+
         render.PushRenderTarget(shaderlib.rt_depth_skybox)
             render.Clear( 255, 0, 0, 0 )
-            render.ClearDepth()
-            render.CullMode(MATERIAL_CULLMODE_NONE or MATERIAL_CULLMODE_CW)
+  
+            shaderlib.sky3d_state = sky_visible
 
-            viewSetup.origin = sky_camera_pos + (viewSetup.origin / skybox_scale);
-            viewSetup.zfar = viewSetup.zfar*skybox_scale;
+            if sky_visible then
+                render.ClearDepth()
+                render.CullMode(MATERIAL_CULLMODE_NONE or MATERIAL_CULLMODE_CW)
 
-            -- первым можно рендерить коробку
-            --[[cam.Start3D()
-                render.SetMaterial(vector_origin, EyeAngles())
-                local min,max = game.GetWorld():GetModelBounds()
-                render.DrawBox( vector_origin, angle_zero, max, min, color_white )
-            cam.End3D()]]
+                viewSetup.origin = sky_camera_pos + (viewSetup.origin / skybox_scale);
+                viewSetup.zfar = viewSetup.zfar*skybox_scale;
 
-            cam.Start(viewSetup)
-                for i = 1,#opaque_meshes do
-                    local _mesh = opaque_meshes[i]
-                    render.SetMaterial(depthwrite_mat)
-                    _mesh:Draw(STUDIO_SSAODEPTHTEXTURE)
-                end
+                -- первым можно рендерить коробку
+                --[[cam.Start3D()
+                    render.SetMaterial(vector_origin, EyeAngles())
+                    local min,max = game.GetWorld():GetModelBounds()
+                    render.DrawBox( vector_origin, angle_zero, max, min, color_white )
+                cam.End3D()]]
 
-                for i = 1,#static_prop_combined do
-                    local _mesh = static_prop_combined[i]
-                    render.SetMaterial(depthwrite_mat)
-                    _mesh:Draw(STUDIO_SSAODEPTHTEXTURE)
-                end
+                cam.Start(viewSetup)
+                    for i = 1,#opaque_meshes do
+                        local _mesh = opaque_meshes[i]
+                        render.SetMaterial(depthwrite_mat)
+                        _mesh:Draw(STUDIO_SSAODEPTHTEXTURE)
+                    end
 
-                for i = 1,#static_prop_combined_alpha do
-                    local _mesh = static_prop_combined_alpha[i]
-                    render.SetMaterial(combined_depth_mats[i] or depthwrite_mat)
-                    _mesh:Draw(STUDIO_SSAODEPTHTEXTURE)
-                end
+                    for i = 1,#static_prop_combined do
+                        local _mesh = static_prop_combined[i]
+                        render.SetMaterial(depthwrite_mat)
+                        _mesh:Draw(STUDIO_SSAODEPTHTEXTURE)
+                    end
 
-                for i = 1,#opaque_meshes_alpha do
-                    local _mesh = opaque_meshes_alpha[i]
-                    render.SetMaterial(alpha_depth_mats[i] or depthwrite_mat)
-                    _mesh:Draw(STUDIO_SSAODEPTHTEXTURE)
-                end
-            cam.End()
+                    for i = 1,#static_prop_combined_alpha do
+                        local _mesh = static_prop_combined_alpha[i]
+                        render.SetMaterial(combined_depth_mats[i] or depthwrite_mat)
+                        _mesh:Draw(STUDIO_SSAODEPTHTEXTURE)
+                    end
 
-            render.CullMode(MATERIAL_CULLMODE_CCW)
+                    for i = 1,#opaque_meshes_alpha do
+                        local _mesh = opaque_meshes_alpha[i]
+                        render.SetMaterial(alpha_depth_mats[i] or depthwrite_mat)
+                        _mesh:Draw(STUDIO_SSAODEPTHTEXTURE)
+                    end
+                cam.End()
+
+                render.CullMode(MATERIAL_CULLMODE_CCW)
+            end
         render.PopRenderTarget()
     end)
 
@@ -482,7 +592,7 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
         end
     end)
 end
---SkyBox3DUpradeDepth()
+
 hook.Add("InitPostShaderlib", "SkyBoxDepth3D", function()
     timer.Simple(0, function()
         SkyBox3DUpradeDepth()
