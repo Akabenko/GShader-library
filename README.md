@@ -135,7 +135,7 @@ Encoding based on method of CryTeck CryEngine 3 — [Advances in Real-Time Rende
 * [LVutner](https://github.com/LVutner?tab=repositories)  — implementation Velocity Buffer encoding based on CryTeck method.
 * [Zaurzo](https://gist.github.com/Zaurzo)  — creating DynamicLight Wrapper.
 * [Blackknight33](https://www.artstation.com/drakkar33) — GShaders logo.
-
+* [Xenthio]([https://www.artstation.com/drakkar33](https://github.com/Xenthio)) — 3D Skybox PVS optimization.
 
 ### Links:
 * [GShaders discord](https://discord.gg/JVbhYEZAmQ)
