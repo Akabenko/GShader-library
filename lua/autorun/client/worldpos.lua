@@ -50,6 +50,7 @@ local function InitReconstruction()
         ["arc9_pipscope"] = true,
         ["arc9_rtmat_spare"] = true,
         ["arc9_cammat"] = true,
+        ["arc9_pipscope_extra5"] = true,
         // arccw
         ["arccw_rtmat"] = true,
         ["arccw_rtmat_cheap"] = true,
