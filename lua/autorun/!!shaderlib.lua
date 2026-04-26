@@ -3,17 +3,21 @@ if !CLIENT then return end
 GShaderlib authors: Meetric, Akabenko
 ---------------------------------------------------------------------------*/
 
-
+MATERIAL_FOG_MODE = 0 -- https://github.com/Facepunch/garrysmod-issues/issues/6791
 
 GSHADER = true
-RESHADE 	= file.Exists("ReShade.ini", "EXECUTABLE_PATH")
 DGVOODOO 	= file.Exists("dgVoodoo.conf", "EXECUTABLE_PATH")
-DXVK 		= ( !DGVOODOO and !RESHADE and file.Exists("d3d9.dll", "EXECUTABLE_PATH") )
+local vulkan_pattern = "10DxvkDeviceEEEEUlPNS"
+local reshade_pattern = "reshade"
+local f = file.Read("d3d9.dll", "EXECUTABLE_PATH") or ""
+DXVK = !!string.find(f, vulkan_pattern, 1, true)
+RESHADE = !!string.find(f, reshade_pattern, 1, true)
 
 TEXFILTER.PYRAMIDALQUAD 	= 6
 TEXFILTER.GAUSSIANQUAD 		= 7
-TEXFILTER.CONVOLUTIONMONO 	= 8 			-- D3D9Ex only -- for D3DFMT_A1 (invalid D3D9 legacy format)
-TEXFILTER.FORCE_DWORD 		= 0x7fffffff 	-- force 32-bit size enum
+-- TEXFILTER.CONVOLUTIONMONO 	= 8 			-- D3D9Ex only -- for D3DFMT_A1 (invalid D3D9 legacy format)
+
+CREATERENDERTARGETFLAGS_NOEDRAM = 8
 
 IMAGE_FORMAT_I8 					=	5
 IMAGE_FORMAT_IA88 					=	6
@@ -114,11 +118,69 @@ shaderlib = shaderlib or {}
 shaderlib.rt_Bump = GetRenderTargetEx("_rt_Bump", ScrW(), ScrH(),
     RT_SIZE_FULL_FRAME_BUFFER,
     MATERIAL_RT_DEPTH_SHARED,
-    bit.bor(4,8,256,512),
+   	bit.bor(4,8,16,256,512),
+    --bit.bor(1,4,8,256,512),
     0, 
     IMAGE_FORMAT_RGBA8888
 )
 
+--[[shaderlib.rt_Blending = GetRenderTargetEx("_rt_Blending", ScrW(), ScrH(),
+    RT_SIZE_FULL_FRAME_BUFFER,
+    MATERIAL_RT_DEPTH_SHARED,
+    bit.bor(4,8,256,512),
+    0, 
+    IMAGE_FORMAT_I8
+)]]
+
+local vendorID = 0
+
+-- https:github.com/Facepunch/garrysmod-requests/issues/2768
+local vendors_id = {
+	[VENDORID_NVIDIA] 	= "NVIDIA";
+	[VENDORID_ATI] 		= "AMD";
+	[VENDORID_INTEL] 	= "INTEL";
+}
+
+local driverName = "UNKNOWN"
+
+local function ReadReshadeGPU()
+	local i = 0
+
+	while true do
+		local file_name = "ReShade.log"
+		if i > 0 then file_name = file_name .. i end
+		local log_reshade = file.Exists(file_name, "EXECUTABLE_PATH")
+
+		if log_reshade then
+			local log_text = file.Read( file_name, "EXECUTABLE_PATH" )
+			local log_text_lower = string.lower(log_text)
+
+			for id, vendor_name in pairs(vendors_id) do
+				local finded, diver_start = string.find( log_text_lower, string.lower(vendor_name) )
+
+				if finded then
+					vendorID = id
+					local end_test = string.find(log_text_lower, "driver", diver_start)
+					driverName = string.sub( log_text, finded, end_test-2 )
+					print("[GShader library] Found " .. driverName .. " driver")
+					break
+				end
+			end
+
+			if vendorID != 0 then break end
+		else
+			if i != 0 then
+				break
+			end
+		end
+
+		i = i + 1
+	end
+end
+
+if file.Exists("ReShade.ini", "EXECUTABLE_PATH") then
+	ReadReshadeGPU()
+end
 
 local function InitShaderLib()
 	--RunConsoleCommand("mat_antialias", "0") -- MRT can not works with MSAA (confirm)
@@ -126,56 +188,6 @@ local function InitShaderLib()
 	/*---------------------------------------------------------------------------
 	system
 	---------------------------------------------------------------------------*/
-	local vendorID = 0
-
-	-- https:github.com/Facepunch/garrysmod-requests/issues/2768
-	local vendors_id = {
-		[VENDORID_NVIDIA] 	= "NVIDIA";
-		[VENDORID_ATI] 		= "AMD";
-		[VENDORID_INTEL] 	= "INTEL";
-	}
-
-	local driverName = "UNKNOWN"
-
-	local function ReadReshadeGPU()
-		local i = 0
-
-		while true do
-			local file_name = "ReShade.log"
-			if i > 0 then file_name = file_name .. i end
-
-			local log_reshade = file.Exists(file_name, "EXECUTABLE_PATH")
-
-			if log_reshade then
-				local log_text = file.Read( file_name, "EXECUTABLE_PATH" )
-				local log_text_lower = string.lower(log_text)
-
-				for id, vendor_name in pairs(vendors_id) do
-					local finded, diver_start = string.find( log_text_lower, string.lower(vendor_name) )
-
-					if finded then
-						vendorID = id
-						local end_test = string.find(log_text_lower, "driver", diver_start)
-						driverName = string.sub( log_text, finded, end_test-2 )
-						print("[GShader library] Found " .. driverName .. " driver")
-						break
-					end
-				end
-
-				if vendorID != 0 then break end
-			else
-				if i != 0 then
-					break
-				end
-			end
-
-			i = i + 1
-		end
-	end
-
-	if RESHADE then
-		ReadReshadeGPU()
-	end
 
 	function system.GetVendorID()
 		return vendorID
@@ -262,7 +274,7 @@ local function InitShaderLib()
 	hook.Add( "OnScreenSizeChanged", libName, InitQuadTbl)
 	hook.Add( "InitPostEntity", libName, InitQuadTbl)
 	InitQuadTbl()
-
+	
 	function shaderlib.DrawScreenQuad() 
 	    cam.Start2D()
 	        render.SetWriteDepthToDestAlpha( false )
@@ -305,8 +317,8 @@ local function InitShaderLib()
 	local old_fov = 0
 	shaderlib.halfH = 0
 
-	hook.Add("RenderScene",libName,function(origin, angles, fov)
-		local viewSetup = render.GetViewSetup(true)
+	--hook.Add("RenderScene",libName,function(origin, angles, fov)
+		--[[local viewSetup = render.GetViewSetup(true)
 	    local znear = viewSetup.znear + bias
 
 	    local f ,r, u = angles:Forward(), angles:Right(), angles:Up()
@@ -321,8 +333,8 @@ local function InitShaderLib()
 	    shaderlib.quadVerts[1] = center - r * shaderlib.halfW + u * shaderlib.halfH
 	    shaderlib.quadVerts[2] = center + r * shaderlib.halfW + u * shaderlib.halfH
 	    shaderlib.quadVerts[3] = center + r * shaderlib.halfW - u * shaderlib.halfH
-	    shaderlib.quadVerts[4] = center - r * shaderlib.halfW - u * shaderlib.halfH
-	end)
+	    shaderlib.quadVerts[4] = center - r * shaderlib.halfW - u * shaderlib.halfH]]
+	--end)
 
 	local coords = {
 		vector_origin;
