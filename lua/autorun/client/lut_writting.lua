@@ -15,10 +15,8 @@ function shaderlib.WritePixel(rt, x, y, r, g, b, a)
 	mat:SetFloat( "$c0_w", a or 255 )
 
 	render.PushRenderTarget( rt, x, y, 1, 1 )
-		cam.Start2D()
-			render.SetMaterial( mat )
-			shaderlib.DrawScreenQuad()
-		cam.End2D()
+		render.SetMaterial( mat )
+		shaderlib.DrawScreenQuad()
 	render.PopRenderTarget()
 end
 
