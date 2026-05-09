@@ -1,6 +1,16 @@
 
 local shaderName = "GshaderBumps"
 
+if !NikNaks then
+	hook.Add("ActivateGShaderBumps", shaderName, function()
+		hook.Add("PreDrawEffects", shaderName, function()
+			-- empty
+			hook.Run("PostBumpDraw")
+		end)
+	end)
+	return
+end
+
 --[[
 TODO:
 
@@ -346,10 +356,10 @@ local function tableAdd(dest, source)
 	return dest
 end
 
---MESHES = MESHES or {}
---MATS = MATS or {}
-local MESHES = {}
-local MATS = {}
+MESHES = MESHES or {}
+MATS = MATS or {}
+--local MESHES = {}
+--local MATS = {}
 
 local blacklist_mat = {
 	["tools/toolsskybox"] = true,
@@ -449,7 +459,8 @@ hook.Add("InitPostEntity", shaderName, function()
 		MESHES, MATS = BuildMeshes(includeDisplacment)
 	end)
 end)
-
+--MESHES, MATS = BuildMeshes(includeDisplacment)
+--print(#MESHES)
 hook.Add("ActivateGShaderBumps", shaderName, function()
 	hook.Add("PreDrawEffects", shaderName, function()  -- PreDrawEffects PostDrawTranslucentRenderables
 		local viewSetup = render.GetViewSetup()
