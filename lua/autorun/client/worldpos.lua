@@ -11,6 +11,7 @@ Shaderlib authors: Meetric, Akabenko
 ---------------------------------------------------------------------------*/
 local shaderName = "Reconstruction"
 local mat_smooth = Material("pp/normal_smooth")
+local mat_copy = Material("pp/copy_depth")
 
 local function InitReconstruction()
     local wn_formats = {
@@ -31,6 +32,22 @@ local function InitReconstruction()
         IMAGE_FORMAT_RGBA32323232F
     )
 
+    shaderlib.rt_DepthHalf = GetRenderTargetEx("_rt_softwaredepth_half", ScrW() * 0.5, ScrH() * 0.5,
+        RT_SIZE_LITERAL,
+        MATERIAL_RT_DEPTH_NONE,
+        bit.bor(16, 4, 8, 256, 512, 32768, 8388608),
+        0,
+        IMAGE_FORMAT_R32F
+    )
+
+    shaderlib.rt_DepthQuad = GetRenderTargetEx("_rt_softwaredepth_quad", ScrW(), ScrH(),
+        RT_SIZE_HDR,
+        MATERIAL_RT_DEPTH_NONE,
+        bit.bor(16, 4, 8, 256, 512, 32768, 8388608),
+        0,
+        IMAGE_FORMAT_R32F
+    )
+    
     shaderlib.rt_NormalsTangents = GetRenderTargetEx("_rt_NormalsTangents", ScrW(), ScrH(),
         RT_SIZE_FULL_FRAME_BUFFER,
         MATERIAL_RT_DEPTH_NONE,
@@ -51,10 +68,17 @@ local function InitReconstruction()
         ["arc9_rtmat_spare"] = true,
         ["arc9_cammat"] = true,
         ["arc9_pipscope_extra5"] = true,
+
         // arccw
         ["arccw_rtmat"] = true,
         ["arccw_rtmat_cheap"] = true,
         ["arccw_rtmat_spare"] = true,
+
+        ["arc9_optic_main"] = true,
+        ["arc9_optic_shaderpass"] = true,
+        ["arc9_optic_legacy_reticle"] = true,
+        ["arc9_optic_cheap"] = true,
+        ["arc9_optic_cheap_spare"] = true,
     }
 
     if TFA then
@@ -147,6 +171,8 @@ local function InitReconstruction()
         viewSetup = viewSetup or render.GetViewSetup(false)
 
         local rt = GetRenderTarget()
+        --if rt then return false end
+
         if rt then
             local rt_name = rt:GetName()
             --print(rt_name)
@@ -195,10 +221,26 @@ local function InitReconstruction()
 
         cam.Start2D()
             render.PushRenderTarget(shaderlib.rt_WPDepth)
-                render.Clear(0,0,0,0,true)
+                --render.Clear(0,0,0,0,true)
                 render.SetMaterial(wp_reconst_mat)
                 render.DrawScreenQuad()
             render.PopRenderTarget()
+
+            local convar = GetConVar("r_shaderlib_half_depth")
+            if convar and convar:GetBool() then
+                render.PushRenderTarget(shaderlib.rt_DepthHalf)
+                    render.SetMaterial(mat_copy)
+                    render.DrawScreenQuad()
+                render.PopRenderTarget()
+            end
+
+            local convar = GetConVar("r_shaderlib_quad_depth")
+            if convar and convar:GetBool() then
+                render.PushRenderTarget(shaderlib.rt_DepthQuad)
+                    render.SetMaterial(mat_copy)
+                    render.DrawScreenQuad()
+                render.PopRenderTarget()
+            end
 
             render.PushRenderTarget(shaderlib.rt_NormalsTangents)
                 render.Clear(0,0,0,0) 
@@ -221,6 +263,6 @@ local function InitReconstruction()
         hook.Run("PostDrawReconstructionEffects", viewSetup)
     end
 end
---InitReconstruction()
+
 hook.Add("InitReconstruction", shaderName, InitReconstruction)
 
