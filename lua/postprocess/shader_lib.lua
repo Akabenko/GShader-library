@@ -14,6 +14,9 @@ local r_shaderlib_dbg_scale = CreateClientConVar( "r_shaderlib_dbg_scale", "0.5"
 local r_shaderlib_3tap_offset = CreateClientConVar( "r_shaderlib_3tap_offset", "1", true, false, "Scale factor debug rt.", 0.5, 2 )
 local r_shaderlib_3dskybox = CreateClientConVar( "r_shaderlib_3dskybox", "1", true, false, "3D Skybox support", 0, 1 )
 local r_shaderlib_bumps = CreateClientConVar( "r_shaderlib_bumps", "0", true, false, "GShader lib bumps", 0, 1 )
+local r_shaderlib_half_depth = CreateClientConVar( "r_shaderlib_half_depth", "0", true, false, "Render small depth render targets.", 0, 1 )
+local r_shaderlib_quad_depth = CreateClientConVar( "r_shaderlib_quad_depth", "0", true, false, "Render small depth render targets.", 0, 1 )
+local r_shaderlib_translucent_crutch = CreateClientConVar( "r_shaderlib_translucent_crutch", "0", true, false, "Translicent fix crutch.", 0, 1 )
 
 list.Set( "PostProcess", "#r_shaderlib", {
 	["icon"] = "gui/postprocess/shaderlib.jpg",
@@ -39,6 +42,9 @@ list.Set( "PostProcess", "#r_shaderlib", {
 					[ r_shaderlib_3tap_offset:GetName() ] 		= r_shaderlib_3tap_offset:GetDefault(),
 					[ r_shaderlib_3dskybox:GetName() ] 			= r_shaderlib_3dskybox:GetDefault(),
 					[ r_shaderlib_bumps:GetName() ] 			= r_shaderlib_bumps:GetDefault(),
+					[ r_shaderlib_half_depth:GetName() ]		= r_shaderlib_half_depth:GetDefault(),
+					[ r_shaderlib_quad_depth:GetName() ]		= r_shaderlib_quad_depth:GetDefault(),
+					[ r_shaderlib_translucent_crutch:GetName() ]		= r_shaderlib_translucent_crutch:GetDefault(),
 				},
 
 				[ "#r_shaderlib.medium" ] = {
@@ -53,6 +59,9 @@ list.Set( "PostProcess", "#r_shaderlib", {
 					[ r_shaderlib_3tap_offset:GetName() ] 		= r_shaderlib_3tap_offset:GetDefault(),
 					[ r_shaderlib_3dskybox:GetName() ] 			= r_shaderlib_3dskybox:GetDefault(),
 					[ r_shaderlib_bumps:GetName() ] 			= r_shaderlib_bumps:GetDefault(),
+					[ r_shaderlib_half_depth:GetName() ]		= r_shaderlib_half_depth:GetDefault(),
+					[ r_shaderlib_quad_depth:GetName() ]		= r_shaderlib_quad_depth:GetDefault(),
+					[ r_shaderlib_translucent_crutch:GetName() ]		= r_shaderlib_translucent_crutch:GetDefault(),
 				},
 			},
 			["CVars"] = {
@@ -67,6 +76,9 @@ list.Set( "PostProcess", "#r_shaderlib", {
 				r_shaderlib_3tap_offset:GetName(),
 				r_shaderlib_3dskybox:GetName(),
 				r_shaderlib_bumps:GetName(),
+				r_shaderlib_half_depth:GetName(),
+				r_shaderlib_quad_depth:GetName(),
+				r_shaderlib_translucent_crutch:GetName(),
 			}
 		} )
 
@@ -74,6 +86,9 @@ list.Set( "PostProcess", "#r_shaderlib", {
 		panel:AddControl( "CheckBox", { ["Label"] = "#r_shaderlib.depthbuffer", ["Command"] = r_shaderlib_depthbuffer:GetName() } )
 		panel:AddControl( "CheckBox", { ["Label"] = "#r_shaderlib.3dskybox", ["Command"] = r_shaderlib_3dskybox:GetName() } )
 		panel:AddControl( "CheckBox", { ["Label"] = "#r_shaderlib.bumps", ["Command"] = r_shaderlib_bumps:GetName() } )
+		panel:AddControl( "CheckBox", { ["Label"] = "#r_shaderlib.half_depth", ["Command"] = r_shaderlib_half_depth:GetName() } )
+		panel:AddControl( "CheckBox", { ["Label"] = "#r_shaderlib.quad_depth", ["Command"] = r_shaderlib_quad_depth:GetName() } )
+		panel:AddControl( "CheckBox", { ["Label"] = "#r_shaderlib.translucent_crutch", ["Command"] = r_shaderlib_translucent_crutch:GetName(), Help = true } )
 
 		panel:Help( "#r_shaderlib.reconsruction" )
 
@@ -160,7 +175,7 @@ list.Set( "PostProcess", "#r_shaderlib", {
         if osx then osname = "OSX" end
         if proton then osname = "Proton" end
 
-        local text = "OS System: " .. osname .. "\nDirectX level: " .. dxlevel
+        local text = "OS: " .. osname .. "\nDirectX level: " .. dxlevel
         local video_vendor = system.GetVendor()
         if video_vendor != "UNKNOWN" then
             text = text .. "\nVideo Vendor: " .. video_vendor
@@ -454,6 +469,19 @@ local function InitParams()
 			hook.Remove(debug_hook, libName)
 		end
 	end, libName )
+
+
+	cvars.AddChangeCallback( r_shaderlib_translucent_crutch:GetName(), function( convar_name, _, identifier )
+		local state = identifier == "1"
+
+		if state then
+			hook.Run("EnableTranslucentCrutch")
+		end
+	end, libName )
+
+
+	if r_shaderlib_translucent_crutch:GetBool() then hook.Run("EnableTranslucentCrutch") end
+
 
 	if r_shaderlib_debug:GetBool() and r_shaderlib:GetBool() then shaderlib.EnableDebugMode() end
 end
