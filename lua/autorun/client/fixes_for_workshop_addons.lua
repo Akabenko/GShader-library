@@ -1,4 +1,3 @@
-
 /*---------------------------------------------------------------------------
 Fixing some workshop addons for NeedDepthPass.
 ---------------------------------------------------------------------------*/
@@ -13,33 +12,6 @@ hook.Add("Initialize", libname,function()
 end)
 
 /*---------------------------------------------------------------------------
-FIXED:
-First Person Legs:          https://steamcommunity.com/sharedfiles/filedetails/?id=3348203779&searchtext=legs
-GMOD Legs 3                 https://steamcommunity.com/sharedfiles/filedetails/?id=112806637&searchtext=gmod+legs (Mirror bug)
-clegs                       https://steamcommunity.com/sharedfiles/filedetails/?id=3386878739&searchtext=clegs+
-Enhanced Camera 2           https://steamcommunity.com/sharedfiles/filedetails/?id=2203217139
-
 UNFIXED:
 Enhanced Camera             https://steamcommunity.com/sharedfiles/filedetails/?id=678037029&searchtext=Enhanced+Camera
-
-CFShadow: broke depth buffer
-https://steamcommunity.com/sharedfiles/filedetails/?id=3386876474
-
-Тело от Первого лица: https://steamcommunity.com/sharedfiles/filedetails/?id=3104967124
-
-CONFIRM:
-VManip (Base)               https://steamcommunity.com/sharedfiles/filedetails/?id=2155366756
-
-Исправлено:
-1. В TFA (3D SCOPES) не появляются фонтанчики от выстрелом при включенном MRT
-2. Фонарики ТФА запаздыают из-за буфера глубины (фикс - выбран рекомендованный хук для обновления projtexture)
-4. Антискример не давал вызвать локализированные функции DrawScreenQuad https://steamcommunity.com/sharedfiles/filedetails/?id=3404179264
 ---------------------------------------------------------------------------*/
-
-
-
-
-
-
-
-
