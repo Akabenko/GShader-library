@@ -13,6 +13,31 @@ local f = file.Read("d3d9.dll", "EXECUTABLE_PATH") or ""
 DXVK = !!string.find(f, vulkan_pattern, 1, true)
 RESHADE = !!string.find(f, reshade_pattern, 1, true)
 
+if DXVK then
+	local function GetDXVKVersion()
+	    local marker = "\0DXVK: \0"
+	    local pos = string.find(f, marker, 1, true)
+	    if not pos then return nil end
+	    
+	    local startPos = pos + #marker
+	    local endPos = string.find(f, "\0", startPos, true)
+	    if not endPos then return nil end
+	    
+	    local raw = string.sub(f, startPos, endPos - 1)
+	    raw = string.Trim(raw)
+	    
+	    if string.StartWith(raw, "v") then
+	        raw = string.sub(raw, 2)
+	    end
+	    
+	    local clean = string.match(raw, "^(%d+%.%d+%.?%d*)")
+	    
+	    return clean or raw
+	end
+	
+	DXVK_VERSION = GetDXVKVersion()
+end
+
 TEXFILTER.PYRAMIDALQUAD 	= 6
 TEXFILTER.GAUSSIANQUAD 		= 7
 -- TEXFILTER.CONVOLUTIONMONO 	= 8 			-- D3D9Ex only -- for D3DFMT_A1 (invalid D3D9 legacy format)
@@ -22,7 +47,6 @@ CREATERENDERTARGETFLAGS_NOEDRAM = 8
 IMAGE_FORMAT_I8 					=	5
 IMAGE_FORMAT_IA88 					=	6
 IMAGE_FORMAT_P8 					=	7
-
 IMAGE_FORMAT_A8 					=	8
 IMAGE_FORMAT_BGR888_BLUESCREEEN 	=	9
 IMAGE_FORMAT_BGR888_BLUESCREEEN 	=	10
@@ -118,7 +142,7 @@ shaderlib = shaderlib or {}
 shaderlib.rt_Bump = GetRenderTargetEx("_rt_Bump", ScrW(), ScrH(),
     RT_SIZE_FULL_FRAME_BUFFER,
     MATERIAL_RT_DEPTH_SHARED,
-   	bit.bor(4,8,16,256,512),
+   	bit.bor(4,8,256,512),
     --bit.bor(1,4,8,256,512),
     0, 
     IMAGE_FORMAT_RGBA8888
@@ -183,7 +207,7 @@ if file.Exists("ReShade.ini", "EXECUTABLE_PATH") then
 end
 
 local function InitShaderLib()
-	--RunConsoleCommand("mat_antialias", "0") -- MRT can not works with MSAA (confirm)
+	--RunConsoleCommand("mat_antialias", "0") -- MRT can not works with MSAA
 
 	/*---------------------------------------------------------------------------
 	system
@@ -317,8 +341,8 @@ local function InitShaderLib()
 	local old_fov = 0
 	shaderlib.halfH = 0
 
-	--hook.Add("RenderScene",libName,function(origin, angles, fov)
-		--[[local viewSetup = render.GetViewSetup(true)
+	hook.Add("RenderScene",libName,function(origin, angles, fov)
+		local viewSetup = render.GetViewSetup(true)
 	    local znear = viewSetup.znear + bias
 
 	    local f ,r, u = angles:Forward(), angles:Right(), angles:Up()
@@ -333,8 +357,8 @@ local function InitShaderLib()
 	    shaderlib.quadVerts[1] = center - r * shaderlib.halfW + u * shaderlib.halfH
 	    shaderlib.quadVerts[2] = center + r * shaderlib.halfW + u * shaderlib.halfH
 	    shaderlib.quadVerts[3] = center + r * shaderlib.halfW - u * shaderlib.halfH
-	    shaderlib.quadVerts[4] = center - r * shaderlib.halfW - u * shaderlib.halfH]]
-	--end)
+	    shaderlib.quadVerts[4] = center - r * shaderlib.halfW - u * shaderlib.halfH
+	end)
 
 	local coords = {
 		vector_origin;
@@ -343,7 +367,7 @@ local function InitShaderLib()
 		Vector(0,1);
 	}
 
-	function shaderlib.Draw3DScreenQuad()
+	function shaderlib.Draw3DScreenQuad( color )
 		cam.Start3D()
 		    render.SetWriteDepthToDestAlpha( false )
 	        cam.IgnoreZ( true )
@@ -351,7 +375,7 @@ local function InitShaderLib()
 	            shaderlib.quadVerts[1],
 	            shaderlib.quadVerts[2],
 	            shaderlib.quadVerts[3],
-	            shaderlib.quadVerts[4]
+	            shaderlib.quadVerts[4], color or color_white
 	        )
 	        cam.IgnoreZ( false )
 	        render.SetWriteDepthToDestAlpha( true )
