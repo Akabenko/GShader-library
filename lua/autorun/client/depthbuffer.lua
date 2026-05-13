@@ -61,53 +61,20 @@ end
 hook.Add("InitPostShaderlib", libname, UpgradeDepthBuffer)
 
 local function SkyBox3DUpradeDepth() -- 3D skybox support
+    if !NikNaks then return end
+
+    local has_skybox        = NikNaks.CurrentMap:HasSkyBox()
+    if !has_skybox then return end
+
     local render = render
     local file = file
     local util = util
     local Matrix = Matrix
     local string = string
 
-    local linux = render.GetDXLevel() == 92 or system.IsLinux() or system.IsOSX() or system.IsProton()
-
-    shaderlib.rt_depth_skybox = GetRenderTargetEx( "_rt_ResolvedFullFrameDepthSky", 1, 1,
-        RT_SIZE_FULL_FRAME_BUFFER,
-        MATERIAL_RT_DEPTH_ONLY,
-        bit.bor(4, 8, 256, 512, 32768),
-        CREATERENDERTARGETFLAGS_NOEDRAM,
-        NikNaks and IMAGE_FORMAT_R32F or (linux and IMAGE_FORMAT_RGB565 or IMAGE_FORMAT_I8)
-    )
-
-    hook.Add("PreRender", libname, function()
-        render.PushRenderTarget(shaderlib.rt_depth_skybox)
-            render.Clear( 255, 0, 0, 0 )
-        render.PopRenderTarget()
-        hook.Remove("PreRender", libname)
-    end)
-
     local depthwrite_mat = CreateMaterial("depthwritesky", "DepthWrite", {
         ["$COLOR_DEPTH"] = "1"
     })
-
-    --[[local zNear = 1
-    local zFar = 100000200
-    hook.Add("PreDrawReconstruction", "SkyDrawBoxDepth", function()
-        render.PushRenderTarget(shaderlib.rt_depth_skybox)
-            render.Clear( 255, 0, 0, 0 )
-            render.ClearDepth()
-            cam.IgnoreZ(true)
-            cam.Start3D(vector_origin, EyeAngles(), nil, nil, nil, nil, nil, zNear, zFar )
-                render.SetMaterial(depthwrite_mat)
-                local min,max = game.GetWorld():GetModelBounds()
-                render.DrawBox( vector_origin, angle_zero, max, min, color_white )
-            cam.End3D()
-            cam.IgnoreZ(false)
-        render.PopRenderTarget()
-    end)]]
-
-    if !NikNaks then return end
-
-    local has_skybox        = NikNaks.CurrentMap:HasSkyBox()
-    if !has_skybox then return end
 
     local function tableAdd(dest, source)
         for i = 1, #source do
@@ -137,12 +104,10 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
 
             local faces = {}
             local leaf_faces = leaf:GetFaces(true)
-            --for k, face in pairs(leaf_faces) do
             for k = 1,#leaf_faces do
                 local face = leaf_faces[k]
                 if !face then continue end
-                --print(k, face, #leaf_faces)
-                --if face:HasTexInfoFlag(0x08) then continue end -- DEAR ESTHER
+                if face:HasTexInfoFlag(0x08) then continue end -- DEAR ESTHER
                 local tex = string.lower( face:GetTexData().nameStringTableID )
                 if blacklist_mat[tex] then continue end
 
@@ -182,7 +147,6 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
         end
 
         skybox_static_props = NikNaks.CurrentMap:FindStaticInBox( skybox_mins, skybox_maxs )
-        --PrintTable(skybox_static_props)
     end
 
     local vertex_limit = math.floor(65535/3)
@@ -405,8 +369,6 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
             for index = 0,#v do
                 local vertexes = v[index]
 
-            --for index, vertexes in pairs(v) do
-                --print(index,vertexes)
                 local _mesh = Mesh()
                 _mesh:BuildFromTriangles(vertexes)
 
@@ -432,103 +394,68 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
 
     shaderlib.sky3d_state = shaderlib.sky3d_state or true
 
-    function shaderlib.Enable3DSkyBox()
-        local old_viewSetup = {}
+    local resolved_depth = render.GetResolvedFullFrameDepth()
 
-        hook.Add("PreDrawReconstruction", libname, function()
-            if !convar_3dsky:GetBool() then return end
-            if hook.Run("NeedsDepthPass") != true then return end
+    local function DrawDepth3DSkybox(flags)
+        local isDepthPass = bit.band( flags, STUDIO_SSAODEPTHTEXTURE ) != 0
+        if !isDepthPass then return end
 
-            local viewSetup = render.GetViewSetup(true)
+        if !convar_3dskylib:GetBool() then return end
+        if !convar_3dsky:GetBool() then return end
 
-            -- avoid render of 3D skybox if data is same
-            if ( old_viewSetup.origin == viewSetup.origin
-                and old_viewSetup.fov == viewSetup.fov
-                and old_viewSetup.angles == viewSetup.angles
-            ) then return end
+        local viewSetup = render.GetViewSetup()
 
-            old_viewSetup.origin = viewSetup.origin
-            old_viewSetup.fov = viewSetup.fov
-            old_viewSetup.angles = viewSetup.angles
-            
-            local sky_visible = util.IsSkyboxVisibleFromPoint(EyePos())
-            
-            if !sky_visible and !shaderlib.sky3d_state then return end
+        local sky_visible = util.IsSkyboxVisibleFromPoint(viewSetup.origin)
 
-            render.PushRenderTarget(shaderlib.rt_depth_skybox)
-                render.Clear( 255, 0, 0, 0 )
-      
-                shaderlib.sky3d_state = sky_visible
+        if !sky_visible and !shaderlib.sky3d_state then return end
 
-                if sky_visible then
-                    render.ClearDepth()
-                    render.CullMode(MATERIAL_CULLMODE_NONE or MATERIAL_CULLMODE_CW)
+        render.PushRenderTarget(resolved_depth)
+            shaderlib.sky3d_state = sky_visible
 
-                    viewSetup.origin = sky_camera_pos + (viewSetup.origin / skybox_scale);
-                    viewSetup.zfar = viewSetup.zfar*skybox_scale;
+            local skyboxMatrix = Matrix()
+            skyboxMatrix:Scale(Vector(skybox_scale,skybox_scale,skybox_scale))
+            skyboxMatrix:SetTranslation(-sky_camera_pos * skybox_scale)
 
-                    -- первым можно рендерить коробку
-                    --[[cam.Start3D()
-                        render.SetMaterial(vector_origin, EyeAngles())
-                        local min,max = game.GetWorld():GetModelBounds()
-                        render.DrawBox( vector_origin, angle_zero, max, min, color_white )
-                    cam.End3D()]]
-
-                    cam.Start(viewSetup)
-                        for i = 1,#opaque_meshes do
-                            local _mesh = opaque_meshes[i]
-                            render.SetMaterial(depthwrite_mat)
-                            _mesh:Draw(STUDIO_SSAODEPTHTEXTURE)
-                        end
-
-                        for i = 1,#static_prop_combined do
-                            local _mesh = static_prop_combined[i]
-                            render.SetMaterial(depthwrite_mat)
-                            _mesh:Draw(STUDIO_SSAODEPTHTEXTURE)
-                        end
-
-                        for i = 1,#static_prop_combined_alpha do
-                            local _mesh = static_prop_combined_alpha[i]
-                            render.SetMaterial(combined_depth_mats[i] or depthwrite_mat)
-                            _mesh:Draw(STUDIO_SSAODEPTHTEXTURE)
-                        end
-
-                        for i = 1,#opaque_meshes_alpha do
-                            local _mesh = opaque_meshes_alpha[i]
-                            render.SetMaterial(alpha_depth_mats[i] or depthwrite_mat)
-                            _mesh:Draw(STUDIO_SSAODEPTHTEXTURE)
-                        end
-                    cam.End()
-
-                    render.CullMode(MATERIAL_CULLMODE_CCW)
+            cam.Start(viewSetup)
+                cam.PushModelMatrix(skyboxMatrix)
+                for i = 1,#opaque_meshes do
+                    local _mesh = opaque_meshes[i]
+                    render.SetMaterial(depthwrite_mat)
+                    _mesh:Draw(STUDIO_SSAODEPTHTEXTURE)
                 end
-            render.PopRenderTarget()
-        end)
-    end
 
-    if convar_3dskylib:GetBool() then shaderlib.Enable3DSkyBox() end
+                for i = 1,#static_prop_combined do
+                    local _mesh = static_prop_combined[i]
+                    render.SetMaterial(depthwrite_mat)
+                    _mesh:Draw(STUDIO_SSAODEPTHTEXTURE)
+                end
 
-    local function Disable3DSky()
-        hook.Remove("PreDrawReconstruction", libname)
-        
-        render.PushRenderTarget(shaderlib.rt_depth_skybox)
-            render.Clear( 255, 0, 0, 0 )
+                for i = 1,#static_prop_combined_alpha do
+                    local _mesh = static_prop_combined_alpha[i]
+                    render.SetMaterial(combined_depth_mats[i] or depthwrite_mat)
+                    _mesh:Draw(STUDIO_SSAODEPTHTEXTURE)
+                end
+
+                for i = 1,#opaque_meshes_alpha do
+                    local _mesh = opaque_meshes_alpha[i]
+                    render.SetMaterial(alpha_depth_mats[i] or depthwrite_mat)
+                    _mesh:Draw(STUDIO_SSAODEPTHTEXTURE)
+                end
+                cam.PopModelMatrix()
+            cam.End()
         render.PopRenderTarget()
     end
 
-    cvars.AddChangeCallback("r_3dsky", function(convar_name, value_old, value_new)
-        if tonumber(value_new) <= 0 then
-            Disable3DSky()
-        end
+    hook.Add("PreDrawViewModel", libname, function(vm, ply, weapon, flags)
+        if ply:ShouldDrawLocalPlayer() then return end
+        DrawDepth3DSkybox(flags)
+        cam.IgnoreZ(true)
     end)
 
-    cvars.AddChangeCallback("r_shaderlib_3dskybox", function(convar_name, _, value_new)
-        local state = value_new == "1"
-        if !state then
-            Disable3DSky()
-        else
-            shaderlib.Enable3DSkyBox()
-        end
+    hook.Add("PrePlayerDraw", libname, function(ply, flags)
+        if ply != LocalPlayer() then return end
+        if !ply:ShouldDrawLocalPlayer() then return end
+        DrawDepth3DSkybox(flags)
     end)
 end
 
