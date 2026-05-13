@@ -168,7 +168,7 @@ list.Set( "PostProcess", "#r_shaderlib", {
 		local linux = system.IsLinux()
         local osx = system.IsOSX()
         local dxlevel = render.GetDXLevel()
-        if DXVK then dxlevel = "VULKAN" end
+        if DXVK then dxlevel = ("VULKAN DXVK: " .. DXVK_VERSION) end
         local proton = system.IsProton()
         local osname = "Windows"
         if linux then osname = "Linux" end
