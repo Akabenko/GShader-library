@@ -415,7 +415,7 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
             local skyboxMatrix = Matrix()
             skyboxMatrix:Scale(Vector(skybox_scale,skybox_scale,skybox_scale))
             skyboxMatrix:SetTranslation(-sky_camera_pos * skybox_scale)
-
+            viewSetup.zfar = viewSetup.zfar * skybox_scale
             cam.Start(viewSetup)
                 cam.PushModelMatrix(skyboxMatrix)
                 for i = 1,#opaque_meshes do
