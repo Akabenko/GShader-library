@@ -367,10 +367,10 @@ local function InitParams()
 
 		local depth_buffer = render.GetResolvedFullFrameDepth()
 		local depth_name = depth_buffer:GetName() .." " .. depth_buffer:Width() .. "x" .. depth_buffer:Height() .. "\n".."IMAGE_FORMAT_R32F".. "\n.R — Depth"
-
-		--local fog_name = shaderlib.rt_Fog:GetName() .." " .. shaderlib.rt_Fog:Width() .. "x" .. shaderlib.rt_Fog:Height() .. "\n".."IMAGE_FORMAT_I8".. "\n.R — Fog mask"
-
+		
 		local dc_name_format = wn_formats[n_format_decode]
+
+		local hdr = render.GetHDREnabled()
 
 	    hook.Add(debug_hook, libName, function()
 	    	cam.Start2D()
@@ -393,9 +393,11 @@ local function InitParams()
 	        render.DrawTextureToScreenRect(depth_buffer, x2, 0, scrw, scrh)
 	        draw.DrawText(depth_name, "DebugOverlay", x2, 0, color_white)
 
-	        local depthsky_name = shaderlib.rt_depth_skybox:GetName() .." " .. shaderlib.rt_depth_skybox:Width() .. "x" .. shaderlib.rt_depth_skybox:Height() .. "\n".."IMAGE_FORMAT_R32F".. "\n.R — Depth"
-	        render.DrawTextureToScreenRect(shaderlib.rt_depth_skybox, x2, scrh, scrw, scrh)
-	        draw.DrawText(depthsky_name, "DebugOverlay", x2, scrh, color_white)
+	        if shaderlib.rt_Lightmaps then
+		        local lightmap_name = shaderlib.rt_Lightmaps:GetName() .." " .. shaderlib.rt_Lightmaps:Width() .. "x" .. shaderlib.rt_Lightmaps:Height() .. "\n"..( hdr and "IMAGE_FORMAT_RGBA16161616F"  or "IMAGE_FORMAT_RGBA8888" )
+		        render.DrawTextureToScreenRect(shaderlib.rt_Lightmaps, x2, scrh, scrw, scrh)
+		        draw.DrawText(lightmap_name, "DebugOverlay", x2, scrh, color_white)
+		    end
 
 	        local x3 = ScrW()-scrw*3
 
@@ -476,15 +478,19 @@ local function InitParams()
 
 		if state then
 			hook.Run("EnableTranslucentCrutch")
+		else
+			hook.Remove("PostCleanupMap", "TranslucentHack")
+			hook.Remove("OnEntityCreated", "TranslucentHack")
 		end
 	end, libName )
-
-
-	if r_shaderlib_translucent_crutch:GetBool() then hook.Run("EnableTranslucentCrutch") end
 
 
 	if r_shaderlib_debug:GetBool() and r_shaderlib:GetBool() then shaderlib.EnableDebugMode() end
 end
 
 hook.Add("InitPostReconstruction", libName, InitParams)
+
+if r_shaderlib_translucent_crutch:GetBool() then
+	hook.Run("EnableTranslucentCrutch")
+end
 
