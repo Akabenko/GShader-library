@@ -136,6 +136,7 @@ Encoding based on method of CryTeck CryEngine 3 — [Advances in Real-Time Rende
 * [Zaurzo](https://gist.github.com/Zaurzo)  — creating DynamicLight Wrapper.
 * [Blackknight33](https://www.artstation.com/drakkar33) — GShaders logo.
 * [Xenthio](https://github.com/Xenthio) — 3D Skybox PVS optimization.
+* [LaVashik](https://lavashik.dev/) — LUT reading.
 
 ### Links:
 * [GShaders discord](https://discord.gg/JVbhYEZAmQ)
