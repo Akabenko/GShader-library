@@ -4,10 +4,15 @@ local shaderName = "ProjectedShared"
 hook.Add( "AcceptInput", shaderName, function( ent, name, activator, caller, data )
     if ( ent:GetClass() != "env_projectedtexture" ) then return end
     
-    if name == "SpotlightTexture"   then    ent:SetNWString("SpotlightTexture", data)   end
-    if name == "TurnOn"             then    ent:SetNWBool("enabled", true)              end     -- Not shadows, but state
-    if name == "TurnOff"            then    ent:SetNWBool("enabled", false)             end
-    if name == "FOV"                then    ent:SetNWFloat("FOV", data)                 end
+    if name == "SpotlightTexture"           then    ent:SetNWString("SpotlightTexture", data)       end
+    if name == "TurnOn"                     then    ent:SetNWBool("enabled", true)                  end     -- Not shadows, but state
+    if name == "TurnOff"                    then    ent:SetNWBool("enabled", false)                 end
+    if name == "FOV"                        then    ent:SetNWFloat("FOV", data)                     end
+
+    -- Volumetric Light .fgd; Params as Strata Source
+    if name == "EnableVolumetrics"          then    ent:SetNWBool("volumetric", tonumber(v) > 0)    end
+    if name == "SetVolumetricIntensity"     then    ent:SetNWFloat("volumetricintensity", data)     end
+
 end )
 
 local meta = FindMetaTable("Entity")
@@ -20,10 +25,10 @@ function meta:SetKeyValue(k,v)
     if ( self:GetClass() != "env_projectedtexture" ) then return end
 
     if k == "lightcolor" then
-        local lightcolor = string.ToColor(v)
-        self:SetNWVector("COLOR", Vector(lightcolor.r,lightcolor.g,lightcolor.b) )
+        local lightcolor = Vector(v) --string.ToColor(v)
+        self:SetNWVector("COLOR", lightcolor )
     end
-
+    
     if k == "nearz"             then self:SetNWFloat("NEARZ", tonumber(v))      end
     if k == "farz"              then self:SetNWFloat("FARZ", tonumber(v))       end
     if k == "lightfov"          then self:SetNWFloat("FOV", tonumber(v))        end
@@ -34,11 +39,14 @@ end
 hook.Add( "EntityKeyValue", shaderName, function( ent, k, v )
     if ent:GetClass() != "env_projectedtexture" then return end
 
-    if k == "enableshadows"     then ent:SetNWBool("enableshadows",  tonumber(v) > 0  )  end
-    if k == "texturename"       then ent:SetNWString("SpotlightTexture", v )      end
-    if k == "nearz"             then ent:SetNWFloat("NEARZ", tonumber(v))       end
-    if k == "farz"              then ent:SetNWFloat("FARZ", tonumber(v))        end
-    if k == "lightfov"          then ent:SetNWFloat("FOV", tonumber(v))         end
+    if k == "enableshadows"         then ent:SetNWBool("enableshadows",  tonumber(v) > 0  )     end
+    if k == "texturename"           then ent:SetNWString("SpotlightTexture", v )                end
+    if k == "nearz"                 then ent:SetNWFloat("NEARZ", tonumber(v))                   end
+    if k == "farz"                  then ent:SetNWFloat("FARZ", tonumber(v))                    end
+    if k == "lightfov"              then ent:SetNWFloat("FOV", tonumber(v))                     end
+    -- Volumetric Light .fgd; Params as Strata Source
+    if k == "volumetricintensity"   then ent:SetNWFloat("volumetricintensity", tonumber(v))     end
+    if k == "volumetric"            then ent:SetNWBool("volumetric",  tonumber(v) > 0  )        end
 
     if k == "lightcolor" then
         local lightcolor = string.ToColor(v)
