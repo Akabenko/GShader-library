@@ -1,11 +1,13 @@
 
 -- https://github.com/Facepunch/garrysmod/pull/2462
-function string.ToColor( str )
-
-    local r, g, b, a = string.match( str, "(%d+) (%d+) (%d+) (%d+)" )
-    if ( !a ) then r, g, b = string.match( str, "(%d+) (%d+) (%d+)" ) end
-    return Color( tonumber( r ) or 255, tonumber( g ) or 255, tonumber( b ) or 255, tonumber( a ) or 255 )
-
+if BRANCH == "unknown" then -- TODO: Remove this code aftere update of main branch
+    function string.ToColor( str )
+        
+        local r, g, b, a = string.match( str, "(%d+) (%d+) (%d+) (%d+)" )
+        if ( !a ) then r, g, b = string.match( str, "(%d+) (%d+) (%d+)" ) end
+        return Color( tonumber( r ) or 255, tonumber( g ) or 255, tonumber( b ) or 255, tonumber( a ) or 255 )
+        
+    end
 end
 
 if SERVER then return end
