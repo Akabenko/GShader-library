@@ -8,3 +8,9 @@ float4 LoadLUT(sampler tex, int2 coord, float2 texelSize)
     float2 uv = (coord + 0.5) * texelSize;
     return tex2Dlod(tex, float4(uv, 0, 0));
 }
+
+float4 LoadLUT(sampler2D tex, int2 coord, float2 texelSize)
+{
+    float2 uv = (coord + 0.5) * texelSize;
+    return tex2Dlod(tex, float4(uv, 0, 0));
+}
