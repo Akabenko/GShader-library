@@ -17,6 +17,6 @@ float4 LoadLUT(sampler2D tex, int2 coord, float2 texelSize)
 
 float4 LoadLUT(sampler1D tex, int coord, float texelSize)
 {
-    float2 u = (coord + 0.5) * texelSize;
-    return tex1Dlod(tex, float4(u, 0, 0));
+    float u = (coord + 0.5) * texelSize;
+    return tex1Dlod(tex, float4(u, 0, 0, 0));
 }
