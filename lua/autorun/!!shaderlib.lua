@@ -571,6 +571,28 @@ local function InitShaderLib()
     	return mProj
 	end
 
+	-- https://gamedev.stackexchange.com/questions/7859/hlsl-pack-4-values-into-32-bit-float
+	-- 32bit floats have 24 bits of significant precision, so the best precision you're going to get is 6 bits per component.
+	-- Params in 0..1 floats
+	function shaderlib.PackFloat(a, b, c, d)
+	    return bit.bor(
+	        bit.lshift(math.floor(a * 63), 18),
+	        bit.lshift(math.floor(b * 63), 12),
+	        bit.lshift(math.floor(c * 63), 6),
+	        math.floor(d * 63)
+	    )
+	end
+	
+	-- Params in 0..63 ints
+	function shaderlib.PackInt(a, b, c, d)
+	    return bit.bor(
+	        bit.lshift(math.floor(a), 18),
+	        bit.lshift(math.floor(b), 12),
+	        bit.lshift(math.floor(c), 6),
+	        math.floor(d)
+	    )
+	end
+
 	hook.Run("InitReconstruction")
 	hook.Run("InitPostReconstruction")
 	hook.Run("InitPostShaderlib")
