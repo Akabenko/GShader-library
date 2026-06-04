@@ -786,6 +786,11 @@ local function InitShaderLib()
 		state.m_flShadowSlopeScaleDepthBias = GetConVar("mat_slopescaledepthbias_shadowmap"):GetFloat()
 		state.m_flShadowDepthBias = GetConVar("mat_depthbias_shadowmap"):GetFloat()
 
+		state.m_fHorizontalFOVDegrees = 45.0
+		state.m_fVerticalFOVDegrees = 30.0
+
+		state.m_nSpotlightTextureFrame = 0
+
 		return state
 	end
 
