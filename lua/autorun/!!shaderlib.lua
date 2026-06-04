@@ -742,7 +742,7 @@ local function InitShaderLib()
 
 				if( pmBackTrace.HitPos ) then
 					// We have an intersection behind us as well, so limit our m_flDistMod
-					local flMaxDist = (pmBackTrace.endpos - vOrigin):Length() - flEpsilon
+					local flMaxDist = (pmBackTrace.HitPos - vOrigin):Length() - flEpsilon
 					if( m_flDistMod > flMaxDist ) then m_flDistMod = flMaxDist end
 				end
 			end
@@ -800,4 +800,3 @@ local function InitShaderLib()
 end
 
 hook.Add("Initialize", libName, InitShaderLib)
-
