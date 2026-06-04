@@ -477,10 +477,38 @@ local function InitShaderLib()
 
 	local t0001 = {0,		0,		0, 		1}
 
+	-- View Matrix to get View Space Normals
+	-- float3 N_view = normalize(mul(worldNormals, ViewMatrix));
+	function shaderlib.GetViewSpaceMatrix(pos, ang)
+		local D = ang:Forward()
+	    local R = ang:Right()
+	    local U = -ang:Up()
+	    local P = -pos
+
+	    local mFirst = Matrix({
+	        {R.x, 	R.y, 	R.z,	0},
+	        {U.x, 	U.y, 	U.z,	0},
+	        {D.x, 	D.y, 	D.z,	0},
+	        t0001,
+	    })
+
+	    local mSecond = Matrix({
+	        {1, 	0, 		0, 		P.x},
+	        {0, 	1, 		0, 		P.y},
+	        {0, 	0, 		1, 		P.z},
+	        t0001,
+	    })
+
+	    mFirst:Mul(mSecond)
+
+	    return mFirst
+	end
+
+	-- Default View Matrix for using on ViewProj
 	function shaderlib.GetViewMatrix(pos, ang)
 		local D = -ang:Forward()
 	    local R = ang:Right()
-	    local U = -ang:Up()
+	    local U = -ang:Up() -- In Gmod func cam.GetViewMatrix() local U = ang:Up()
 	    local P = -pos
 
 	    local mFirst = Matrix({
@@ -569,28 +597,6 @@ local function InitShaderLib()
     	mProj:Mul(mView)
 
     	return mProj
-	end
-
-	-- https://gamedev.stackexchange.com/questions/7859/hlsl-pack-4-values-into-32-bit-float
-	-- 32bit floats have 24 bits of significant precision, so the best precision you're going to get is 6 bits per component.
-	-- Params in 0..1 floats
-	function shaderlib.PackFloat(a, b, c, d)
-	    return bit.bor(
-	        bit.lshift(math.floor(a * 63), 18),
-	        bit.lshift(math.floor(b * 63), 12),
-	        bit.lshift(math.floor(c * 63), 6),
-	        math.floor(d * 63)
-	    )
-	end
-	
-	-- Params in 0..63 ints
-	function shaderlib.PackInt(a, b, c, d)
-	    return bit.bor(
-	        bit.lshift(math.floor(a), 18),
-	        bit.lshift(math.floor(b), 12),
-	        bit.lshift(math.floor(c), 6),
-	        math.floor(d)
-	    )
 	end
 
 	hook.Run("InitReconstruction")
