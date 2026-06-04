@@ -609,6 +609,7 @@ local function InitShaderLib()
 	flash_mat:SetTexture("$basetexture", "effects/flashlight001")
 
 	local m_FlashlightTexture = flash_mat:GetTexture("$basetexture")
+	local m_flDistMod = 0 -- CONFIRM: Maybe need to transfer it to separate Think function
 
 	function shaderlib.GetFlashlightPos()
 		local vecPos = MainEyePos()
