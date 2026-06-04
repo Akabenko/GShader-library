@@ -598,6 +598,195 @@ local function InitShaderLib()
 
     	return mProj
 	end
+	
+	//-----------------------------------------------------------------------------
+	// Purpose: Do the headlight
+	//-----------------------------------------------------------------------------
+	local mins, maxs = Vector(-4, -4, -4), Vector(4, 4, 4)
+	local state = false
+
+	local flash_mat = CreateMaterial("_flash", "UnlitGeneric", {})
+	flash_mat:SetTexture("$basetexture", "effects/flashlight001")
+
+	local m_FlashlightTexture = flash_mat:GetTexture("$basetexture")
+
+	function shaderlib.GetFlashlightPos()
+		local vecPos = MainEyePos()
+		local eyeangles = MainEyeAngles()
+		local vecForward = eyeangles:Forward()
+		local vecRight = eyeangles:Right()
+		local vecUp = eyeangles:Up()
+
+		local client = LocalPlayer()
+
+		local m_bIsOn = client:FlashlightIsOn()
+
+		local function TurnOn()
+			m_flDistMod = 1.0
+		end
+
+		if !state and m_bIsOn then
+			TurnOn()
+			state = true
+		end
+
+		if !m_bIsOn then
+			state = false
+		end
+
+		local bPlayerOnLadder = ( client:GetMoveType() == MOVETYPE_LADDER )
+
+		local flEpsilon = 0.1			// Offset flashlight position along vecUp
+		local flDistCutoff = 128.0
+		local flDistDrag = 0.2
+
+		local traceFilter = {client, client:GetActiveWeapon()}
+
+		local flOffsetY = GetConVar("r_flashlightoffsety"):GetFloat()
+
+		if GetConVar("r_swingflashlight"):GetBool() then
+
+			// This projects the view direction backwards, attempting to raise the vertical
+			// offset of the flashlight, but only when the player is looking down.
+			local vecSwingLight = vecPos + vecForward * -12.0;
+			if( vecSwingLight.z > vecPos.z ) then
+				flOffsetY = flOffsetY + (vecSwingLight.z - vecPos.z);
+			end
+		end
+
+		local vOrigin = vecPos + flOffsetY * vecUp;
+
+		// Not on ladder...trace a hull
+		if ( !bPlayerOnLadder ) then
+
+			local pmOriginTrace = util.TraceHull( {
+				start = vecPos,
+				endpos = vOrigin,
+				mins = mins,
+				maxs = maxs,
+				mask = bit.band( MASK_SOLID, bit.bnot(CONTENTS_HITBOX) ),
+				filter = traceFilter
+			} )
+
+			if ( pmOriginTrace.Hit ) then
+				vOrigin = vecPos;
+			end
+		else // on ladder...skip the above hull trace
+			vOrigin = vecPos;
+		end
+
+		// Now do a trace along the flashlight direction to ensure there is nothing within range to pull back from
+		local iMask = MASK_OPAQUE_AND_NPCS
+
+		iMask = bit.band( iMask, bit.bnot(CONTENTS_HITBOX) )
+		iMask = bit.bor( iMask, CONTENTS_WINDOW )
+
+		local vTarget = vecPos + vecForward * GetConVar("r_flashlightfar"):GetFloat()
+
+		// Work with these local copies of the basis for the rest of the function
+		local vDir   = vTarget - vOrigin
+		local vRight = Vector(0,0,0)
+		vRight:Set(vecRight)
+		local vUp    = Vector(0,0,0)
+		vUp:Set(vecUp)
+
+		vDir:Normalize()
+		vRight:Normalize()
+		vUp:Normalize()
+
+		// Orthonormalize the basis, since the flashlight texture projection will require this later...
+		vUp = vUp - vDir:Dot( vUp ) * vDir;
+		vUp:Normalize()
+		vRight = vRight - vDir:Dot( vRight ) * vDir;
+		vRight:Normalize()
+		vRight = vRight - vUp:Dot( vRight ) * vUp;
+		vRight:Normalize()
+
+		local pmDirectionTrace = util.TraceHull( {
+			start = vOrigin,
+			endpos = vTarget,
+			mins = mins,
+			maxs = maxs,
+			mask = iMask,
+			filter = traceFilter
+		} )
+
+		if ( GetConVar("r_flashlightvisualizetrace"):GetBool() == true ) then
+			cam.Start3D()
+				render.SetColorMaterial()
+				cam.IgnoreZ(true)
+				render.DrawWireframeBox( pmDirectionTrace.HitPos, angle_zero, mins, maxs, Color( 0, 255, 0, 160 ) )
+				 render.DrawLine( vOrigin, pmDirectionTrace.HitPos, Color( 0, 255, 0 ) )
+				cam.IgnoreZ(false)
+			cam.End3D()
+		end
+
+
+		local flDist = (pmDirectionTrace.HitPos - vOrigin):Length()
+		if ( flDist < flDistCutoff ) then
+			// We have an intersection with our cutoff range
+			// Determine how far to pull back, then trace to see if we are clear
+			local flPullBackDist = bPlayerOnLadder and r_flashlightladderdist.GetFloat() or flDistCutoff - flDist;	// Fixed pull-back distance if on ladder
+			m_flDistMod = Lerp( flDistDrag, m_flDistMod, flPullBackDist );
+			
+			if ( !bPlayerOnLadder ) then
+				local pmBackTrace = util.TraceHull( {
+					start = vOrigin,
+					endpos = vOrigin - vDir*(flPullBackDist-flEpsilon),
+					mins = mins,
+					maxs = maxs,
+					mask = iMask,
+					filter = traceFilter
+				} )
+
+				if( pmBackTrace.HitPos ) then
+					// We have an intersection behind us as well, so limit our m_flDistMod
+					local flMaxDist = (pmBackTrace.endpos - vOrigin):Length() - flEpsilon
+					if( m_flDistMod > flMaxDist ) then m_flDistMod = flMaxDist end
+				end
+			end
+		else
+			m_flDistMod = Lerp( flDistDrag, m_flDistMod, 0.0 );
+		end
+
+		vOrigin = vOrigin - vDir * m_flDistMod;
+
+		local state = {}
+		state.m_vecLightOrigin = vOrigin;
+
+		local matrix = Matrix()
+		matrix:SetForward(vDir)
+		matrix:SetRight(vecRight)
+		matrix:SetUp(vUp)
+
+		state.m_quatOrientation = matrix:GetAngles()
+
+		state.m_fQuadraticAtten = GetConVar("r_flashlightquadratic"):GetFloat()
+
+		local bFlicker = false
+
+		if ( bFlicker == false ) then
+			state.m_fLinearAtten = GetConVar("r_flashlightlinear"):GetFloat()
+			state.m_fHorizontalFOVDegrees = GetConVar("r_flashlightfov"):GetFloat()
+			state.m_fVerticalFOVDegrees = GetConVar("r_flashlightfov"):GetFloat()
+		end
+
+		state.m_fConstantAtten = GetConVar("r_flashlightconstant"):GetFloat()
+		local flashlightColor = client:GetFlashlightColor()
+		state.m_Color = Color( flashlightColor.r, flashlightColor.g, flashlightColor.b, GetConVar("r_flashlightambient"):GetFloat())
+		state.m_NearZ = GetConVar("r_flashlightnear"):GetFloat() + m_flDistMod;	// Push near plane out so that we don't clip the world when the flashlight pulls back 
+		state.m_FarZ = GetConVar("r_flashlightfar"):GetFloat()
+		state.m_bEnableShadows = GetConVar("r_flashlightdepthtexture"):GetBool()
+		state.m_flShadowMapResolution = GetConVar("r_flashlightdepthres"):GetInt()
+
+		state.m_pSpotlightTexture = m_FlashlightTexture
+
+		state.m_flShadowAtten = GetConVar("r_flashlightshadowatten"):GetFloat()
+		state.m_flShadowSlopeScaleDepthBias = GetConVar("mat_slopescaledepthbias_shadowmap"):GetFloat()
+		state.m_flShadowDepthBias = GetConVar("mat_depthbias_shadowmap"):GetFloat()
+
+		return state
+	end
 
 	hook.Run("InitReconstruction")
 	hook.Run("InitPostReconstruction")
@@ -605,7 +794,4 @@ local function InitShaderLib()
 end
 
 hook.Add("Initialize", libName, InitShaderLib)
-
-
-
 
