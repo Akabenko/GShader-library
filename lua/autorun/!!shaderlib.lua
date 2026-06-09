@@ -727,7 +727,7 @@ local function InitShaderLib()
 		if ( flDist < flDistCutoff ) then
 			// We have an intersection with our cutoff range
 			// Determine how far to pull back, then trace to see if we are clear
-			local flPullBackDist = bPlayerOnLadder and r_flashlightladderdist.GetFloat() or flDistCutoff - flDist;	// Fixed pull-back distance if on ladder
+			local flPullBackDist = bPlayerOnLadder and GetConVar("r_flashlightladderdist"):GetFloat() or flDistCutoff - flDist;	// Fixed pull-back distance if on ladder
 			m_flDistMod = Lerp( flDistDrag, m_flDistMod, flPullBackDist );
 			
 			if ( !bPlayerOnLadder ) then
