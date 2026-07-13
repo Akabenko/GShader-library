@@ -12,7 +12,8 @@ local r_shaderlib_debug = CreateClientConVar( "r_shaderlib_debug", "0", true, fa
 local r_shaderlib_debug_decode = CreateClientConVar( "r_shaderlib_debug_decode", "0", false, false, "Show decoded rendertargets on HUD.", 0, 1 ) 
 local r_shaderlib_dbg_scale = CreateClientConVar( "r_shaderlib_dbg_scale", "0.5", true, false, "Scale factor debug rt.", 0.4, 1 )
 local r_shaderlib_3tap_offset = CreateClientConVar( "r_shaderlib_3tap_offset", "1", true, false, "Scale factor debug rt.", 0.5, 2 )
-local r_shaderlib_3dskybox = CreateClientConVar( "r_shaderlib_3dskybox", "1", true, false, "3D Skybox support", 0, 1 )
+local r_shaderlib_3dskybox = CreateClientConVar( "r_shaderlib_3dskybox", "0", true, false, "3D Skybox support", 0, 1 )
+local r_shaderlib_lightmaps = CreateClientConVar( "r_shaderlib_lightmaps", "0", true, false, "3D Skybox support", 0, 1 )
 local r_shaderlib_bumps = CreateClientConVar( "r_shaderlib_bumps", "0", true, false, "GShader lib bumps", 0, 1 )
 local r_shaderlib_half_depth = CreateClientConVar( "r_shaderlib_half_depth", "0", true, false, "Render small depth render targets.", 0, 1 )
 local r_shaderlib_quad_depth = CreateClientConVar( "r_shaderlib_quad_depth", "0", true, false, "Render small depth render targets.", 0, 1 )
@@ -41,6 +42,7 @@ list.Set( "PostProcess", "#r_shaderlib", {
 					[ r_shaderlib_debug:GetName() ] 			= r_shaderlib_debug:GetDefault(),
 					[ r_shaderlib_3tap_offset:GetName() ] 		= r_shaderlib_3tap_offset:GetDefault(),
 					[ r_shaderlib_3dskybox:GetName() ] 			= r_shaderlib_3dskybox:GetDefault(),
+					[ r_shaderlib_lightmaps:GetName() ] 			= r_shaderlib_lightmaps:GetDefault(),
 					[ r_shaderlib_bumps:GetName() ] 			= r_shaderlib_bumps:GetDefault(),
 					[ r_shaderlib_half_depth:GetName() ]		= r_shaderlib_half_depth:GetDefault(),
 					[ r_shaderlib_quad_depth:GetName() ]		= r_shaderlib_quad_depth:GetDefault(),
@@ -58,6 +60,7 @@ list.Set( "PostProcess", "#r_shaderlib", {
 					[ r_shaderlib_debug:GetName() ] 			= r_shaderlib_debug:GetDefault(),
 					[ r_shaderlib_3tap_offset:GetName() ] 		= r_shaderlib_3tap_offset:GetDefault(),
 					[ r_shaderlib_3dskybox:GetName() ] 			= r_shaderlib_3dskybox:GetDefault(),
+					[ r_shaderlib_lightmaps:GetName() ] 			= r_shaderlib_lightmaps:GetDefault(),
 					[ r_shaderlib_bumps:GetName() ] 			= r_shaderlib_bumps:GetDefault(),
 					[ r_shaderlib_half_depth:GetName() ]		= r_shaderlib_half_depth:GetDefault(),
 					[ r_shaderlib_quad_depth:GetName() ]		= r_shaderlib_quad_depth:GetDefault(),
@@ -79,6 +82,7 @@ list.Set( "PostProcess", "#r_shaderlib", {
 				r_shaderlib_half_depth:GetName(),
 				r_shaderlib_quad_depth:GetName(),
 				r_shaderlib_translucent_crutch:GetName(),
+				r_shaderlib_lightmaps:GetName(),
 			}
 		} )
 
@@ -89,6 +93,7 @@ list.Set( "PostProcess", "#r_shaderlib", {
 		panel:AddControl( "CheckBox", { ["Label"] = "#r_shaderlib.half_depth", ["Command"] = r_shaderlib_half_depth:GetName() } )
 		panel:AddControl( "CheckBox", { ["Label"] = "#r_shaderlib.quad_depth", ["Command"] = r_shaderlib_quad_depth:GetName() } )
 		panel:AddControl( "CheckBox", { ["Label"] = "#r_shaderlib.translucent_crutch", ["Command"] = r_shaderlib_translucent_crutch:GetName(), Help = true } )
+		panel:AddControl( "CheckBox", { ["Label"] = "#r_shaderlib.lightmaps", ["Command"] = r_shaderlib_lightmaps:GetName() } )
 
 		panel:Help( "#r_shaderlib.reconsruction" )
 
@@ -353,7 +358,7 @@ local function InitParams()
 	function shaderlib.EnableDebugMode()
 		local s = r_shaderlib_dbg_scale:GetFloat()
 
-		local decode_mat = Material("pp/decode_normals_tangents")
+		local decode_mat = Material("debug/decode_normals_tangents")
 
 		InitTestRT()
 
@@ -368,6 +373,7 @@ local function InitParams()
 		local depth_buffer = render.GetResolvedFullFrameDepth()
 		local depth_name = depth_buffer:GetName() .." " .. depth_buffer:Width() .. "x" .. depth_buffer:Height() .. "\n".."IMAGE_FORMAT_R32F".. "\n.R — Depth"
 		
+		local showz_depth = Material("debug/showz_resolveddepth")
 		local dc_name_format = wn_formats[n_format_decode]
 
 		local hdr = render.GetHDREnabled()
@@ -390,10 +396,12 @@ local function InitParams()
 	        local x2 = ScrW()-scrw*2
 
 	        
-	        render.DrawTextureToScreenRect(depth_buffer, x2, 0, scrw, scrh)
+	       	render.DrawTextureToScreenRect(depth_buffer, x2, 0, scrw, scrh)
+	        --render.SetMaterial(showz_depth)
+	        --render.DrawScreenQuadEx(x2, 0, scrw, scrh)
 	        draw.DrawText(depth_name, "DebugOverlay", x2, 0, color_white)
 
-	        if shaderlib.rt_Lightmaps then
+	        if shaderlib.rt_Lightmaps and r_shaderlib_lightmaps:GetBool() then
 		        local lightmap_name = shaderlib.rt_Lightmaps:GetName() .." " .. shaderlib.rt_Lightmaps:Width() .. "x" .. shaderlib.rt_Lightmaps:Height() .. "\n"..( hdr and "IMAGE_FORMAT_RGBA16161616F"  or "IMAGE_FORMAT_RGBA8888" )
 		        render.DrawTextureToScreenRect(shaderlib.rt_Lightmaps, x2, scrh, scrw, scrh)
 		        draw.DrawText(lightmap_name, "DebugOverlay", x2, scrh, color_white)
@@ -401,8 +409,10 @@ local function InitParams()
 
 	        local x3 = ScrW()-scrw*3
 
-        	render.DrawTextureToScreenRect(shaderlib.rt_Bump, x, scrh*2, scrw, scrh)
-        	draw.DrawText(bm_name, "DebugOverlay", x, scrh*2, color_white)
+	        if r_shaderlib_bumps:GetBool() then
+	        	render.DrawTextureToScreenRect(shaderlib.rt_Bump, x, scrh*2, scrw, scrh)
+	        	draw.DrawText(bm_name, "DebugOverlay", x, scrh*2, color_white)
+	        end
 
 	        if debug_decode then
 	        	render.PushRenderTarget(rt_Decode_Normals) render.Clear(0,0,0,0) render.PopRenderTarget()
