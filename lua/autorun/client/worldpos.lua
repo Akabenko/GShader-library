@@ -95,6 +95,7 @@ local function InitReconstruction()
 
             for i = 0,3 do
                 rt_blacklist[ "tfa_rt_screeno_"..qualitySizes[i] ] = true
+                rt_blacklist[ "tfa_rt_screen_"..qualitySizes[i] ] = true
             end
         end
 
@@ -182,6 +183,8 @@ local function InitReconstruction()
                 return false
             end
         end
+
+        if bDrawLightMaps then return false end
 
         if viewSetup.id and !avableViewIds[viewSetup.id] then return false end
 

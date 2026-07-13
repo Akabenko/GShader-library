@@ -356,11 +356,6 @@ local function tableAdd(dest, source)
 	return dest
 end
 
-MESHES = MESHES or {}
-MATS = MATS or {}
---local MESHES = {}
---local MATS = {}
-
 local blacklist_mat = {
 	["tools/toolsskybox"] = true,
 }
@@ -456,26 +451,32 @@ local includeDisplacment = true
 
 hook.Add("InitPostEntity", shaderName, function()
 	timer.Simple(1, function()
-		MESHES, MATS = BuildMeshes(includeDisplacment)
+		if !GetConVar("r_shaderlib_bumps"):GetBool() then return end
+		shaderlib.bump_MESHES, shaderlib.bump_MATS = BuildMeshes(includeDisplacment)
 	end)
 end)
---MESHES, MATS = BuildMeshes(includeDisplacment)
---print(#MESHES)
+
 hook.Add("ActivateGShaderBumps", shaderName, function()
+	if !shaderlib.bump_MESHES then
+		shaderlib.bump_MESHES, shaderlib.bump_MATS = BuildMeshes(includeDisplacment)
+	end
+
 	hook.Add("PreDrawEffects", shaderName, function()  -- PreDrawEffects PostDrawTranslucentRenderables
 		local viewSetup = render.GetViewSetup()
 		if !shaderlib.CanDrawEffects(viewSetup) then return end
 		viewSetup.znear = viewSetup.znear + 0.005
 		viewSetup.zfar = viewSetup.zfar + 10
+
+		-- выводим так же маску смешиваний
 		
 		cam.Start(viewSetup)
 		render.PushRenderTarget(shaderlib.rt_Bump)
 			render.Clear(0,0,0,0)
 			--render.SetColorMaterial()
 			render.OverrideDepthEnable(true,true)
-			for i = 1, #MESHES do
-				render.SetMaterial(MATS[i])
-				local _mesh = MESHES[i]
+			for i = 1, #shaderlib.bump_MESHES do
+				render.SetMaterial(shaderlib.bump_MATS[i])
+				local _mesh = shaderlib.bump_MESHES[i]
 				_mesh:Draw(STUDIO_RENDER + STUDIO_NOSHADOWS)
 			end
 			

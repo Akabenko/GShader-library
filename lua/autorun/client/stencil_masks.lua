@@ -1,8 +1,7 @@
 
 local stencilHook = "StencilMasks"
 
-STENCIL_WEAPON = 0x01
--- TODO: List all stencil masks 0-255 from workshop addons. To detect free numbers.
+STENCIL_WEAPON = 68
 
 timer.Simple(0, function()
 	hook.Add("PreDrawViewModel", stencilHook, function(vm, ply, weapon, flags)

@@ -136,7 +136,7 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
             local leaf = skybox_leafs[i]
 
             local faces = {}
-            local leaf_faces = leaf:GetFaces(true)
+            local leaf_faces = leaf:GetFaces(true) 
             --for k, face in pairs(leaf_faces) do
             for k = 1,#leaf_faces do
                 local face = leaf_faces[k]
@@ -421,11 +421,6 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
         return meshes_tbl, combined_depth_mats
     end
 
-    Collect3DSkyboxInfo()
-    local opaque_meshes, mats_vertexes_alpha = SortVertexByMatBrush(skybox_faces)
-    local opaque_meshes_alpha, alpha_depth_mats = CreateCombinedMesh(mats_vertexes_alpha)
-    local static_prop_combined, vertexes_tbl_alpha = SortVertexByMat(skybox_static_props)
-    local static_prop_combined_alpha, combined_depth_mats = CreateCombinedMesh(vertexes_tbl_alpha)
 
     local convar_3dskylib = GetConVar("r_shaderlib_3dskybox")
     local convar_3dsky = GetConVar("r_3dsky")
@@ -433,6 +428,20 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
     shaderlib.sky3d_state = shaderlib.sky3d_state or true
 
     function shaderlib.Enable3DSkyBox()
+        if !shaderlib.sky_meshes then
+            Collect3DSkyboxInfo() -- heavy function
+
+            shaderlib.sky_meshes = {}
+
+            local mats_vertexes_alpha
+            local vertexes_tbl_alpha
+
+            shaderlib.sky_meshes.opaque_meshes, mats_vertexes_alpha = SortVertexByMatBrush(skybox_faces)
+            shaderlib.sky_meshes.opaque_meshes_alpha, shaderlib.sky_meshes.alpha_depth_mats = CreateCombinedMesh(mats_vertexes_alpha)
+            shaderlib.sky_meshes.static_prop_combined, vertexes_tbl_alpha = SortVertexByMat(skybox_static_props)
+            shaderlib.sky_meshes.static_prop_combined_alpha, shaderlib.sky_meshes.combined_depth_mats = CreateCombinedMesh(vertexes_tbl_alpha)
+        end
+
         local old_viewSetup = {}
 
         hook.Add("PreDrawReconstruction", libname, function()
@@ -467,7 +476,7 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
                     viewSetup.origin = sky_camera_pos + (viewSetup.origin / skybox_scale);
                     viewSetup.zfar = viewSetup.zfar*skybox_scale;
 
-                    -- первым можно рендерить коробку
+                    -- draw a box?
                     --[[cam.Start3D()
                         render.SetMaterial(vector_origin, EyeAngles())
                         local min,max = game.GetWorld():GetModelBounds()
@@ -475,27 +484,27 @@ local function SkyBox3DUpradeDepth() -- 3D skybox support
                     cam.End3D()]]
 
                     cam.Start(viewSetup)
-                        for i = 1,#opaque_meshes do
-                            local _mesh = opaque_meshes[i]
+                        for i = 1,#shaderlib.sky_meshes.opaque_meshes do
+                            local _mesh = shaderlib.sky_meshes.opaque_meshes[i]
                             render.SetMaterial(depthwrite_mat)
                             _mesh:Draw(STUDIO_SSAODEPTHTEXTURE)
                         end
 
-                        for i = 1,#static_prop_combined do
-                            local _mesh = static_prop_combined[i]
+                        for i = 1,#shaderlib.sky_meshes.static_prop_combined do
+                            local _mesh = shaderlib.sky_meshes.static_prop_combined[i]
                             render.SetMaterial(depthwrite_mat)
                             _mesh:Draw(STUDIO_SSAODEPTHTEXTURE)
                         end
 
-                        for i = 1,#static_prop_combined_alpha do
-                            local _mesh = static_prop_combined_alpha[i]
-                            render.SetMaterial(combined_depth_mats[i] or depthwrite_mat)
+                        for i = 1,#shaderlib.sky_meshes.static_prop_combined_alpha do
+                            local _mesh = shaderlib.sky_meshes.static_prop_combined_alpha[i]
+                            render.SetMaterial(shaderlib.sky_meshes.combined_depth_mats[i] or depthwrite_mat)
                             _mesh:Draw(STUDIO_SSAODEPTHTEXTURE)
                         end
 
-                        for i = 1,#opaque_meshes_alpha do
-                            local _mesh = opaque_meshes_alpha[i]
-                            render.SetMaterial(alpha_depth_mats[i] or depthwrite_mat)
+                        for i = 1,#shaderlib.sky_meshes.opaque_meshes_alpha do
+                            local _mesh = shaderlib.sky_meshes.opaque_meshes_alpha[i]
+                            render.SetMaterial(shaderlib.sky_meshes.alpha_depth_mats[i] or depthwrite_mat)
                             _mesh:Draw(STUDIO_SSAODEPTHTEXTURE)
                         end
                     cam.End()
