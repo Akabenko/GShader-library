@@ -211,22 +211,40 @@ local function FaceMat(fc)
 	return td and td.name or ""
 end
 
+local function ClearLightmaps()
+	if shaderlib.LM_meshes then
+		for i = 1, #shaderlib.LM_meshes do
+			local mesh = shaderlib.LM_meshes[i]
+			if mesh and mesh.Destroy then mesh:Destroy() end
+		end
+	end
+	shaderlib.LM_meshes = nil
+	shaderlib.L_MATS = nil
+	shaderlib.LM_map = nil
+end
+
 local function Build()
-	if shaderlib.LM_meshes then return end
+	local map = game.GetMap()
+	if shaderlib.LM_meshes and shaderlib.LM_map == map then return end
+	ClearLightmaps()
 
 	shaderlib.LM_meshes = {}
+	shaderlib.LM_map = map
 
 	if not ParseBSP() then return end
 
-	-- get [lightmap N]
+	shaderlib.LM_symOrder = nil
+	shaderlib.LM_symSeq = nil
+
+	-- get [lightmap N] (one probe mat — avoid appending lm_probe_* into m_MaterialDict)
 	local plm = {}
 	do
+		local probe = CreateMaterial("lm_probe_shared", "UnlitGeneric", {})
 		local i = 0
 		while true do
 			local nm = "[lightmap " .. i .. "]"
-			local m = CreateMaterial("lm_probe_" .. i, "UnlitGeneric", {})
-			m:SetTexture("$basetexture", nm)
-			local t = m:GetTexture("$basetexture")
+			probe:SetTexture("$basetexture", nm)
+			local t = probe:GetTexture("$basetexture")
 			if not t or t:IsErrorTexture() then break end
 			plm[i] = t; i = i + 1
 		end
@@ -273,28 +291,7 @@ local function Build()
 
 	local matOrder = {}
 	do
-		if MATORDER == MODE_SESSION then
-			local SYM_FILE = "lightmap_symorder.txt"
-			local names = {}
-			local data = file.Read(SYM_FILE, "DATA")
-			if data and data ~= "" then
-				local lines = string.Explode("\n", data)
-				local lastT = tonumber(lines[1] or "")
-				if lastT and SysTime() >= lastT then -- same session
-					for i = 2, #lines do if lines[i] ~= "" then names[#names + 1] = lines[i] end end
-				end
-			end
-			local seen = {}
-			for i = 1, #names do seen[names[i]] = true; matOrder[names[i]] = i - 1 end
-			for i = 0, #BSP.texdatas do
-				local td = BSP.texdatas[i]
-				local nm = td and td.name
-				if nm and nm ~= "" and not seen[nm] then
-					seen[nm] = true; names[#names + 1] = nm; matOrder[nm] = #names - 1
-				end
-			end
-			file.Write(SYM_FILE, tostring(SysTime()) .. "\n" .. table.concat(names, "\n"))
-		else
+		local function orderFromTexLump()
 			local k = 0
 			if MATORDER == MODE_TEXINFO then
 				for i = 0, #BSP.texinfos do
@@ -303,12 +300,36 @@ local function Build()
 					local nm = td and td.name
 					if nm and nm ~= "" and matOrder[nm] == nil then matOrder[nm] = k; k = k + 1 end
 				end
-			else -- texdata
+			else -- either MODE_SESSION or MODE_TEXDATA
 				for i = 0, #BSP.texdatas do
 					local td = BSP.texdatas[i]
 					if td and td.name ~= "" and matOrder[td.name] == nil then matOrder[td.name] = k; k = k + 1 end
 				end
 			end
+		end
+
+		local enumFn
+		for i = 0, #BSP.texdatas do
+			local nm = BSP.texdatas[i] and BSP.texdatas[i].name
+			if not nm or nm == "" then continue end
+			local m = Material(nm)
+			if m and not m:IsError() then
+				enumFn = (m.GetEnumerationID and "GetEnumerationID") or (m.GetID and "GetID") or nil
+				print(enumFn)
+				break
+			end
+		end
+
+		if enumFn then
+			for i = 0, #BSP.texdatas do
+				local nm = BSP.texdatas[i] and BSP.texdatas[i].name
+				if not nm or nm == "" or matOrder[nm] ~= nil then continue end
+				local m = Material(nm)
+				matOrder[nm] = (m and not m:IsError() and m[enumFn](m)) or math.huge
+				print(matOrder[nm])
+			end
+		else
+			orderFromTexLump()
 		end
 	end
 
@@ -333,7 +354,7 @@ local function Build()
 				if bump and bump ~= "" and (noDiff == nil or noDiff == 0) then res = true end
 			end
 
-			--res = bit.band(m:GetInt("$flags2"), 4) != 0 -- will works, but not, sad
+			res = bit.band(m:GetInt("$flags2"), 8) != 0
 		end
 		bumpCache[name] = res
 		return res
@@ -494,7 +515,7 @@ local function Build()
 			end
 		end
 		for p, buckets in pairs(byPage) do
-			local m = CreateMaterial("lm_page_" .. p .. "_" .. CurTime(), "UnlitGeneric", {
+			local m = CreateMaterial("lm_page_" .. p, "UnlitGeneric", {
 				["$basetexture"] = "color/white",
 				["$nolod"]       = "1",
 				["$vertexcolor"] = "0",
@@ -516,14 +537,6 @@ local function Build()
 end
 
 local function EnableLightmaps()
-	--[[if GetConVar("gmod_unload_test"):GetInt() != 1 then
-		RunConsoleCommand("gmod_unload_test", 1)
-	end
-
-	if GetConVar("gmod_uncache_test"):GetInt() != 2 then
-		RunConsoleCommand("gmod_uncache_test", 2)
-	end]]
-
 	hook.Add("PreDrawEffects", shaderName, function()
 		local viewSetup = render.GetViewSetup()
 		if shaderlib.CanDrawEffects and not shaderlib.CanDrawEffects(viewSetup) then return end
@@ -549,24 +562,34 @@ local function EnableLightmaps()
 end
 
 local function InitLightmaps()
-	cvars.AddChangeCallback("r_shaderlib_lightmaps", function(convar_name, _, value_new)
-        local state = value_new == "1"
+	if not shaderlib.LM_cvarHooked then
+		shaderlib.LM_cvarHooked = true
+		cvars.AddChangeCallback("r_shaderlib_lightmaps", function(_, _, value_new)
+			local state = value_new == "1"
+			if not state then
+				hook.Remove("PreDrawEffects", shaderName)
+			else
+				Build()
+				EnableLightmaps()
+			end
+		end, shaderName)
+	end
 
-        if !state then
-			--RunConsoleCommand("gmod_unload_test", 0)
-			--RunConsoleCommand("gmod_uncache_test", 0)
-			hook.Remove("PreDrawEffects", shaderName)
-        else
-        	if !shaderlib.LM_meshes then Build() end
-			EnableLightmaps()
-        end
-    end)
+	if not GetConVar("r_shaderlib_lightmaps"):GetBool() then return end
 
-	if !GetConVar("r_shaderlib_lightmaps"):GetBool() then return end
-
-	timer.Simple(1, function() Build() EnableLightmaps() end)
+	timer.Create(shaderName .. "_build", 1, 1, function()
+		Build()
+		EnableLightmaps()
+	end)
 end
 
-hook.Add("InitPostEntity", shaderName, function() shaderlib.LM_initialized = true InitLightmaps() end)
+hook.Add("ShutDown", shaderName, ClearLightmaps)
+hook.Add("InitPostEntity", shaderName, function()
+	shaderlib.LM_initialized = true
+	if shaderlib.LM_map and shaderlib.LM_map ~= game.GetMap() then
+		ClearLightmaps()
+	end
+	InitLightmaps()
+end)
 
 if shaderlib.LM_initialized or IsValid(LocalPlayer()) then InitLightmaps() end
