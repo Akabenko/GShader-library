@@ -187,9 +187,11 @@ local function ReadReshadeGPU()
 				if finded then
 					vendorID = id
 					local end_test = string.find(log_text_lower, "driver", diver_start)
-					driverName = string.sub( log_text, finded, end_test-2 )
-					print("[GShader library] Found " .. driverName .. " driver")
-					break
+					if end_test then
+						driverName = string.sub( log_text, finded, end_test-2 )
+						print("[GShader library] Found " .. driverName .. " driver")
+						break
+					end
 				end
 			end
 
