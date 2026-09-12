@@ -1,3 +1,4 @@
+if render.GetDXLevel() >= 110 then return end
 
 local libName = "shaderlib"
 
@@ -373,7 +374,7 @@ local function InitParams()
 		local depth_buffer = render.GetResolvedFullFrameDepth()
 		local depth_name = depth_buffer:GetName() .." " .. depth_buffer:Width() .. "x" .. depth_buffer:Height() .. "\n".."IMAGE_FORMAT_R32F".. "\n.R — Depth"
 		
-		local showz_depth = Material("debug/showz_resolveddepth")
+		--local showz_depth = Material("debug/showz_resolveddepth")
 		local dc_name_format = wn_formats[n_format_decode]
 
 		local hdr = render.GetHDREnabled()
