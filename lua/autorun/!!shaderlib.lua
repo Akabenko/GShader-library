@@ -1,4 +1,6 @@
 if !CLIENT then return end
+
+if render.GetDXLevel() >= 110 then return end
 /*---------------------------------------------------------------------------
 GShaderlib authors: Meetric, Akabenko
 ---------------------------------------------------------------------------*/
@@ -612,8 +614,8 @@ local function InitShaderLib()
 	local m_flDistMod = 0 -- CONFIRM: Maybe need to transfer it to separate Think function
 
 	function shaderlib.GetHeadlightEffect()
-		local vecPos = MainEyePos()
-		local eyeangles = MainEyeAngles()
+		local vecPos = EyePos()
+		local eyeangles = EyeAngles()
 		local vecForward = eyeangles:Forward()
 		local vecRight = eyeangles:Right()
 		local vecUp = eyeangles:Up()
